@@ -1,143 +1,223 @@
 # app.py
-import streamlit as st
+from flask import Flask, render_template, request
+from dotenv import load_dotenv
+import os
 import numpy as np
-import matplotlib.pyplot as plt
+from modules import fuzzy_sets
 from utils.llm_explainer import explain_with_llm
+from modules import fuzzy_membership
+from flask import jsonify
+from flask import jsonify, request
 
-# Page config
-st.set_page_config(page_title="Soft Computing Fuzzy Toolbox", layout="wide")
+# Load environment variables
+load_dotenv()
 
-st.title("🧠 Soft Computing Fuzzy Logic Toolbox (Web Edition)")
-st.caption("A web-based intelligent fuzzy logic toolbox with explainable AI integration.")
+app = Flask(__name__)
 
-# Sidebar navigation
-page = st.sidebar.radio(
-    "Navigate to:",
-    [
-        "Home",
-        "Fuzzy Set Operations",
-        "Membership Function Editor",
-        "Fuzzy Relations & Composition",
-        "Fuzzy Implications & Rule Base",
-        "Fuzzy Inference & Defuzzification"
-    ]
-)
 
-# ---------------- HOME ----------------
-if page == "Home":
-    st.markdown("""
-    ### 👋 Welcome to the Soft Computing Fuzzy Toolbox (Web Version)
-    This toolbox allows you to:
-    - Perform all fuzzy set operations
-    - Design and visualize membership functions
-    - Compute fuzzy relations and implications
-    - Build fuzzy rule bases and inference systems
-    - Perform **defuzzification**
-    - Get instant **AI explanations** for each computation using an integrated LLM API
+# 🏠 Home route
+@app.route("/")
+def home():
+    return render_template("index.html")
 
-    ---
-    **Developed by:** Navaras P  
-    **Institution:** Kerala University of Digital Sciences  
-    **Powered by:** Streamlit + OpenAI GPT  
-    ---
-    """)
 
-# ---------------- FUZZY SET OPERATIONS ----------------
-elif page == "Fuzzy Set Operations":
-    st.header("🧩 Fuzzy Set Operations")
+# ================================
+# 🧩 Fuzzy Set Operations Page
+# ================================
+@app.route("/sets", methods=["GET", "POST"])
+def fuzzy_sets_page():
+    result = None
+    labels = []
+    operation = None
+    explanation = None
+    chart_type = "line"
+    A_plot, B_plot = [], []
 
-    st.write("### Enter Fuzzy Sets Manually")
-    A_str = st.text_input("Set A:", "(x1,0.5),(x2,0.3),(x3,0.7)")
-    B_str = st.text_input("Set B:", "(x1,0.4),(x2,0.6),(x3,0.5)")
-    operation = st.selectbox(
-        "Select Operation",
-        [
-            "Union", "Intersection", "Complement",
-            "Algebraic Product", "Algebraic Sum",
-            "Bounded Sum", "Bounded Difference",
-            "Crisp Multiplication", "Power"
-        ]
-    )
+    if request.method == "POST":
+        A_str = request.form.get("setA")
+        B_str = request.form.get("setB")
+        operation = request.form.get("operation")
 
-    if st.button("Compute"):
+        labelsA, A = fuzzy_sets.parse_fuzzy(A_str)
+        labelsB, B = fuzzy_sets.parse_fuzzy(B_str)
+
         try:
-            # Parse fuzzy sets
-            def parse_fuzzy_set(text):
-                pairs = text.replace("{", "").replace("}", "").split(")")
-                data = {}
-                for p in pairs:
-                    if "(" in p:
-                        vals = p.strip(" ,(").split(",")
-                        if len(vals) == 2:
-                            data[vals[0]] = float(vals[1])
-                return list(data.keys()), np.array(list(data.values()))
-
-            labelsA, A = parse_fuzzy_set(A_str)
-            labelsB, B = parse_fuzzy_set(B_str)
-
-            # Compute basic fuzzy operations
-            if operation == "Union":
-                result = np.fmax(A, B)
-            elif operation == "Intersection":
-                result = np.fmin(A, B)
+            # --- Perform operation ---
+            if operation == "Equality":
+                result = fuzzy_sets.equality(A, B)
             elif operation == "Complement":
-                result = 1 - A
+                result = fuzzy_sets.complement(A)
+            elif operation == "Intersection":
+                result = fuzzy_sets.intersection(A, B)
+            elif operation == "Union":
+                result = fuzzy_sets.union(A, B)
             elif operation == "Algebraic Product":
-                result = A * B
+                result = fuzzy_sets.algebraic_product(A, B)
+            elif operation == "Multiplication by Crisp Number":
+                result = fuzzy_sets.crisp_multiply(A, 0.5)
+            elif operation == "Power of Fuzzy Set":
+                result = fuzzy_sets.power(A, 2)
             elif operation == "Algebraic Sum":
-                result = np.clip(A + B - (A * B), 0, 1)
+                result = fuzzy_sets.algebraic_sum(A, B)
+            elif operation == "Algebraic Difference":
+                result = fuzzy_sets.algebraic_difference(A, B)
             elif operation == "Bounded Sum":
-                result = np.clip(A + B, 0, 1)
+                result = fuzzy_sets.bounded_sum(A, B)
             elif operation == "Bounded Difference":
-                result = np.clip(A - B, 0, 1)
-            elif operation == "Crisp Multiplication":
-                result = np.clip(A * 0.5, 0, 1)
-            elif operation == "Power":
-                result = np.clip(A ** 2, 0, 1)
+                result = fuzzy_sets.bounded_difference(A, B)
+            elif operation == "Cartesian Product":
+                result = fuzzy_sets.cartesian_product(A, B)
+                chart_type = "heatmap"
+            elif operation == "Composition":
+                R = fuzzy_sets.cartesian_product(A, B)
+                S = fuzzy_sets.cartesian_product(B, A)
+                result = fuzzy_sets.composition(R, S)
+                chart_type = "heatmap"
             else:
                 result = np.zeros_like(A)
 
-            # Display result
-            st.success(f"**Result ({operation})**: {np.round(result, 3)}")
+            # LLM explanation
+            if "explain" in request.form:
+                explanation = explain_with_llm(
+                    operation,
+                    A.tolist() if hasattr(A, "tolist") else A,
+                    B.tolist() if hasattr(B, "tolist") else B,
+                    result.tolist() if hasattr(result, "tolist") else result,
+                )
 
-            # Plot result
-            fig, ax = plt.subplots()
-            x = np.arange(len(A))
-            bar_width = 0.25
-            ax.bar(x - bar_width, A, width=bar_width, label="A", color="blue")
-            ax.bar(x, B, width=bar_width, label="B", color="orange")
-            ax.bar(x + bar_width, result, width=bar_width, label="Result", color="green")
-            ax.set_xticks(x)
-            ax.set_xticklabels(labelsA)
-            ax.set_ylim(0, 1.05)
-            ax.legend()
-            st.pyplot(fig)
-
-            # Explain Button
-            if st.button("🧠 Explain This Operation"):
-                with st.spinner("Generating explanation..."):
-                    explanation = explain_with_llm(operation, A, B, result)
-                    st.markdown(explanation)
+            labels = labelsA or labelsB
+            A_plot = A.tolist()
+            B_plot = B.tolist()
 
         except Exception as e:
-            st.error(f"Error: {e}")
+            explanation = f"⚠️ Error: {e}"
 
-# ---------------- MEMBERSHIP FUNCTION EDITOR ----------------
-elif page == "Membership Function Editor":
-    st.header("📈 Membership Function Editor (Triangular, Trapezoidal, Gaussian)")
-    st.info("Coming next — sliders to define and visualize membership functions interactively.")
+    # --- Safe conversion ---
+    def safe_to_list(x):
+        try:
+            return x.tolist()
+        except Exception:
+            return x
 
-# ---------------- RELATIONS ----------------
-elif page == "Fuzzy Relations & Composition":
-    st.header("🔗 Fuzzy Relations & Composition")
-    st.info("This module will visualize fuzzy relation matrices and perform Max–Min compositions.")
+    return render_template(
+        "fuzzy_sets.html",
+        result=safe_to_list(result),
+        labels=safe_to_list(labels),
+        A=A_plot,
+        B=B_plot,
+        operation=operation,
+        explanation=explanation,
+        chart_type=chart_type,
+    )
 
-# ---------------- IMPLICATIONS ----------------
-elif page == "Fuzzy Implications & Rule Base":
-    st.header("⚙️ Fuzzy Implications & Rule Base")
-    st.info("This section will let you build rule bases like 'IF temp is high THEN fan speed is fast'.")
 
-# ---------------- FIS + DEFUZZIFICATION ----------------
-elif page == "Fuzzy Inference & Defuzzification":
-    st.header("🧠 Fuzzy Inference & Defuzzification")
-    st.info("This will handle the full Mamdani FIS process including defuzzification methods (centroid, bisector, etc.).")
+# ================================
+# Other Placeholder Routes
+# ================================
+@app.route("/membership", methods=["GET", "POST"])
+def membership():
+    x = np.linspace(0, 10, 300)
+    y = np.zeros_like(x)
+    mf_type = "Triangular"
+    params = []
+    explanation = None
+
+    if request.method == "POST":
+        mf_type = request.form.get("mf_type")
+
+        try:
+            param_values = [float(p.strip()) for p in request.form.get("params").split(",")]
+
+            if mf_type == "Triangular":
+                y = fuzzy_membership.triangular(x, *param_values)
+            elif mf_type == "Trapezoidal":
+                y = fuzzy_membership.trapezoidal(x, *param_values)
+            elif mf_type == "Gaussian":
+                y = fuzzy_membership.gaussian(x, *param_values)
+
+            params = param_values
+
+            if "explain" in request.form:
+                explanation = explain_with_llm(
+                    f"{mf_type} Membership Function",
+                    f"Parameters: {params}",
+                    "Domain: 0–10",
+                    f"Output: {y.tolist()[:10]}..."
+                )
+
+        except Exception as e:
+            explanation = f"⚠️ Error: {e}"
+
+    return render_template(
+        "membership.html",
+        x=x.tolist(),
+        y=y.tolist(),
+        mf_type=mf_type,
+        params=params,
+        explanation=explanation
+    )
+
+
+# ================================
+# 🧩 API: Membership Function JSON
+# ================================
+@app.route("/api/membership", methods=["POST"])
+def api_membership():
+    data = request.get_json()
+    mf_type = data.get("mf_type")
+    params = data.get("params", [])
+    x = np.linspace(0, 10, 300)
+
+    try:
+        if mf_type == "Triangular":
+            y = fuzzy_membership.triangular(x, *params)
+        elif mf_type == "Trapezoidal":
+            y = fuzzy_membership.trapezoidal(x, *params)
+        elif mf_type == "Gaussian":
+            y = fuzzy_membership.gaussian(x, *params)
+        else:
+            y = np.zeros_like(x)
+
+        return jsonify({"x": x.tolist(), "y": y.tolist()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/membership/explain", methods=["POST"])
+def api_membership_explain():
+    """Generate LLM explanation for the current MF."""
+    data = request.get_json()
+    mf_type = data.get("mf_type")
+    params = data.get("params", [])
+    prompt = f"""
+    Explain this fuzzy membership function type and its parameters.
+    Type: {mf_type}
+    Parameters: {params}
+    Domain: 0–10
+    Describe its mathematical formula, how the parameters affect the shape,
+    and a simple real-world example.
+    """
+
+    try:
+        response = explain_with_llm("Membership Function", mf_type, params, prompt)
+        return jsonify({"explanation": response})
+    except Exception as e:
+        return jsonify({"explanation": f"⚠️ Error: {e}"}), 500
+
+   
+
+@app.route("/relations")
+def relations():
+    return render_template("relations.html")
+
+@app.route("/implications")
+def implications():
+    return render_template("implications.html")
+
+@app.route("/fis")
+def fis():
+    return render_template("fis.html")
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

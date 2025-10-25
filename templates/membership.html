@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-card">
+  <h2>Interactive Membership Function Editor</h2>
+
+  <label>Type of Membership Function:</label>
+  <select id="mf_type" class="dropdown">
+    <option>Triangular</option>
+    <option>Trapezoidal</option>
+    <option>Gaussian</option>
+  </select>
+
+  <div id="slider-area" class="slider-area"></div>
+
+  <div class="btn-row">
+    <button id="explain-btn" class="btn">🧠 Explain</button>
+    <span id="explanation-loading" style="display: none;">Generating explanation...</span>
+  </div>
+
+  <div id="chart"></div>
+
+  <div id="explanation-box" class="explain-box" style="display: none;">
+    <h3>AI Explanation</h3>
+    <div id="explanation-text" class="explanation-content">
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="{{ url_for('static', filename='js/membership.js') }}"></script>
+{% endblock %}

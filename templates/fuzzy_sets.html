@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-card">
+  <h2>Fuzzy Set Operations</h2>
+  <p>Enter fuzzy sets in the form: <code>(x1,0.5),(x2,0.3),(x3,0.7)</code></p>
+
+  <form method="POST" class="form-area">
+    <label>Set A:</label>
+    <textarea name="setA" rows="2" required>{{ request.form.setA or "(x1,0.5),(x2,0.3),(x3,0.7)" }}</textarea>
+
+    <label>Set B:</label>
+    <textarea name="setB" rows="2">{{ request.form.setB or "(x1,0.4),(x2,0.6),(x3,0.5)" }}</textarea>
+
+    <label>Operation:</label>
+    <select name="operation" required>
+      <option value="">-- Select Operation --</option>
+      <option>Equality</option>
+      <option>Complement</option>
+      <option>Intersection</option>
+      <option>Union</option>
+      <option>Algebraic Product</option>
+      <option>Multiplication by Crisp Number</option>
+      <option>Power of Fuzzy Set</option>
+      <option>Algebraic Sum</option>
+      <option>Algebraic Difference</option>
+      <option>Bounded Sum</option>
+      <option>Bounded Difference</option>
+      <option>Cartesian Product</option>
+      <option>Composition</option>
+    </select>
+
+    <div class="btn-row">
+      <button type="submit" name="compute" class="btn">Compute</button>
+      <button type="submit" name="explain" class="btn">🧠 Explain</button>
+      <span id="explanation-loading" style="display: none;">Generating explanation...</span>
+
+    </div>
+  </form>
+
+  {% if result is not none %}
+  <div class="result-box">
+    <h3>Result ({{ operation }})</h3>
+
+    {% if operation == "Equality" %}
+      <p><strong>Equality:</strong> {{ result }}</p>
+    {% else %}
+      <p><strong>Values:</strong> {{ result }}</p>
+    {% endif %}
+
+    <div id="chart"></div>
+  </div>
+  {% endif %}
+
+  {% if explanation %}
+  <div class="explain-box">
+    <h3>AI Explanation</h3>
+    <p>{{ explanation|safe }}</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Plotly Graph Section -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+{% if result is not none %}
+  {% if chart_type == "line" %}
+    const traceA = {
+      x: {{ labels|tojson }},
+      y: {{ A|tojson }},
+      mode: 'lines+markers',
+      name: 'Set A',
+      line: { color: 'rgba(0,0,0,0.4)', dash: 'dot', width: 2 },
+      marker: { color: 'rgba(0,0,0,0.4)', size: 6 }
+    };
+
+    const traceB = {
+      x: {{ labels|tojson }},
+      y: {{ B|tojson }},
+      mode: 'lines+markers',
+      name: 'Set B',
+      line: { color: 'rgba(100,100,100,0.6)', dash: 'dash', width: 2 },
+      marker: { color: 'rgba(100,100,100,0.6)', size: 6 }
+    };
+
+    const traceResult = {
+      x: {{ labels|tojson }},
+      y: {{ result|tojson }},
+      mode: 'lines+markers',
+      name: '{{ operation }} Result',
+      line: { color: 'black', width: 3 },
+      marker: { color: 'black', size: 7 }
+    };
+
+    const layout = {
+      title: '{{ operation }}',
+      paper_bgcolor: '#fff',
+      plot_bgcolor: '#fff',
+      font: { color: '#000' },
+      margin: { t: 40 },
+      yaxis: { title: 'Membership (μ)', range: [0, 1.05] },
+      xaxis: { title: 'Elements' },
+      legend: { x: 0.8, y: 1.1, orientation: 'h' }
+    };
+
+    Plotly.newPlot('chart', [traceA, traceB, traceResult], layout);
+
+  {% elif chart_type == "heatmap" %}
+    const zData = {{ result|tojson }};
+    const heatmap = {
+      z: zData,
+      type: 'heatmap',
+      colorscale: [
+        [0, 'rgb(255,255,255)'],
+        [1, 'rgb(0,0,0)']
+      ]
+    };
+    const layout2 = {
+      title: '{{ operation }} Matrix',
+      paper_bgcolor: '#fff',
+      plot_bgcolor: '#fff',
+      font: { color: '#000' },
+      margin: { t: 40 }
+    };
+    Plotly.newPlot('chart', [heatmap], layout2);
+  {% endif %}
+{% endif %}
+</script>
+<script>
+  const explainBtn = document.querySelector('button[name="explain"]');
+  const explanationLoading = document.getElementById('explanation-loading');
+
+  if (explainBtn) {
+    explainBtn.addEventListener('click', () => {
+      explanationLoading.style.display = 'inline';
+    });
+  }
+</script>
+{% endblock %}
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Soft Computing Fuzzy Toolbox</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <nav>
+    <div class="nav-container">
+      <h2 class="nav-logo">🧠 Fuzzy Toolbox</h2>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/sets">Fuzzy Sets</a>
+        <a href="/membership">Membership</a>
+        <a href="/relations">Relations</a>
+        <a href="/implications">Implications</a>
+        <a href="/fis">FIS</a>
+        <a href="/fis">FIS</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-container">
+    {% block content %}{% endblock %}
+  </main>
+<!-- MathJax for LaTeX Rendering -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  
+</body>
+</html>
