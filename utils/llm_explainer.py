@@ -13,7 +13,7 @@ def explain_with_llm(context, mf_type, params, prompt):
     Generate branded, math-rendered explanations using Gemini.
     """
     try:
-        model = genai.GenerativeModel("gemini-1.5-pro-latest")
+        model = genai.GenerativeModel("gemini-pro-latest")
 
         full_prompt = f"""
         You are "Aswin's Fuzzy Toolbox", an educational fuzzy logic assistant.
