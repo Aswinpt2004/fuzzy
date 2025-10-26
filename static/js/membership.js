@@ -96,6 +96,7 @@ explainBtn.addEventListener("click", async () => {
     const data = await res.json();
     explainBox.style.display = "block";
     explainText.innerHTML = data.explanation || "No explanation returned.";
+    MathJax.typeset([explainText]);
   } finally {
     explanationLoading.style.display = "none";
     explainBtn.disabled = false;

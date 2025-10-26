@@ -135,6 +135,16 @@
     });
   }
 </script>
+{% if explanation %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const explainBox = document.querySelector('.explain-box');
+    if (explainBox) {
+      MathJax.typeset([explainBox]);
+    }
+  });
+</script>
+{% endif %}
 {% endblock %}
 </body>
 </html>
