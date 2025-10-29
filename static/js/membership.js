@@ -109,5 +109,4 @@ document.getElementById("mf_type").addEventListener("change", e => {
   createSliders(mfType);
 });
 
-// ---------- Init ----------
 createSliders(mfType);
