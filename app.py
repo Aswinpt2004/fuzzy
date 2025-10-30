@@ -134,6 +134,12 @@ def membership():
                 y = fuzzy_membership.trapezoidal(x, *param_values)
             elif mf_type == "Gaussian":
                 y = fuzzy_membership.gaussian(x, *param_values)
+            elif mf_type == "Bell":
+                y = fuzzy_membership.bell_shaped(x, *param_values)
+            elif mf_type == "Sigmoid":
+                y = fuzzy_membership.sigmoid(x, *param_values)
+            else:
+                y = np.zeros_like(x)
 
             params = param_values
 
@@ -175,6 +181,10 @@ def api_membership():
             y = fuzzy_membership.trapezoidal(x, *params)
         elif mf_type == "Gaussian":
             y = fuzzy_membership.gaussian(x, *params)
+        elif mf_type == "Bell":
+                y = fuzzy_membership.bell_shaped(x, *params)
+        elif mf_type == "Sigmoid":
+                y = fuzzy_membership.sigmoid(x, *params)
         else:
             y = np.zeros_like(x)
 

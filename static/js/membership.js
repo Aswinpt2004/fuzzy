@@ -10,9 +10,24 @@ let mfType = document.getElementById("mf_type").value;
 function createSliders(type) {
   sliderArea.innerHTML = "";
   let paramLabels = [];
-  if (type === "Triangular") paramLabels = ["a", "b", "c"];
-  else if (type === "Trapezoidal") paramLabels = ["a", "b", "c", "d"];
-  else if (type === "Gaussian") paramLabels = ["mean", "sigma"];
+
+  switch (type) {
+    case "Triangular":
+      paramLabels = ["a", "b", "c"];
+      break;
+    case "Trapezoidal":
+      paramLabels = ["a", "b", "c", "d"];
+      break;
+    case "Gaussian":
+      paramLabels = ["sigma", "c"];
+      break;
+    case "Bell":
+      paramLabels = ["a", "b", "c"];
+      break;
+    case "Sigmoid":
+      paramLabels = ["a", "c"];
+      break;
+  }
 
   paramLabels.forEach(label => {
     const container = document.createElement("div");

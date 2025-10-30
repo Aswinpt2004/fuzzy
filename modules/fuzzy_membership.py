@@ -8,3 +8,9 @@ def trapezoidal(x, a, b, c, d):
 
 def gaussian(x, mean, sigma):
     return np.exp(-0.5 * ((x - mean)/sigma)**2)
+
+def bell_shaped(x, a, b, c):
+    return 1 / (1 + np.abs((x - c)/a) ** (2 * b))
+
+def sigmoid(x, a, c):
+    return 1 / (1 + np.exp(-a * (x - c)))
