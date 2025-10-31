@@ -13,31 +13,32 @@ function createSliders(type) {
 
   switch (type) {
     case "Triangular":
-      paramLabels = ["a", "b", "c"];
+      paramLabels = ["a (Start)", "b (Peak)", "c (End)"];
       break;
     case "Trapezoidal":
-      paramLabels = ["a", "b", "c", "d"];
+      paramLabels = ["a (Start)", "b (Peak Start)", "c (Peak End)", "d (End)"];
       break;
     case "Gaussian":
-      paramLabels = ["sigma", "c"];
+      paramLabels = ["\u03C3 (Width)", "c (Center)"];
       break;
     case "Bell":
-      paramLabels = ["a", "b", "c"];
+      paramLabels = ["a (Width)", "b (Slope)", "c (Center)"];
       break;
     case "Sigmoid":
-      paramLabels = ["a", "c"];
+      paramLabels = ["a (Slope)", "c (Center)"];
       break;
   }
 
   paramLabels.forEach(label => {
+    const paramName = label.split(" ")[0];
     const container = document.createElement("div");
     container.className = "slider-container";
     container.innerHTML = `
       <div class="slider-label">
         <label>${label}: </label>
-        <input type="number" id="num-${label}" value="5" min="0" max="10" step="0.1" class="num-input">
+        <input type="number" id="num-${paramName}" value="5" min="0" max="10" step="0.1" class="num-input">
       </div>
-      <input type="range" min="0" max="10" step="0.1" value="5" id="slider-${label}">
+      <input type="range" min="0" max="10" step="0.1" value="5" id="slider-${paramName}">
     `;
     sliderArea.appendChild(container);
   });

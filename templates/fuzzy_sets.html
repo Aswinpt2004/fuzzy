@@ -43,6 +43,18 @@
 
     {% if operation == "Equality" %}
       <p><strong>Equality:</strong> {{ result }}</p>
+    {% elif result and result[0] is sequence %}
+      <div class="matrix-display">
+        <table>
+          {% for row in result %}
+          <tr>
+            {% for cell in row %}
+            <td>{{ "%.2f"|format(cell) }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
     {% else %}
       <p><strong>Values:</strong> {{ result }}</p>
     {% endif %}
@@ -104,24 +116,6 @@
 
     Plotly.newPlot('chart', [traceA, traceB, traceResult], layout);
 
-  {% elif chart_type == "heatmap" %}
-    const zData = {{ result|tojson }};
-    const heatmap = {
-      z: zData,
-      type: 'heatmap',
-      colorscale: [
-        [0, 'rgb(255,255,255)'],
-        [1, 'rgb(0,0,0)']
-      ]
-    };
-    const layout2 = {
-      title: '{{ operation }} Matrix',
-      paper_bgcolor: '#fff',
-      plot_bgcolor: '#fff',
-      font: { color: '#000' },
-      margin: { t: 40 }
-    };
-    Plotly.newPlot('chart', [heatmap], layout2);
   {% endif %}
 {% endif %}
 </script>

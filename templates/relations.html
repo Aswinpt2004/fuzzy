@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-card">
+  <h2>Fuzzy Relations and Composition</h2>
+
+  <form method="POST" class="form-area">
+    <div class="form-row">
+      <label>Mode:</label>
+      <select name="mode" onchange="this.form.submit()">
+        <option {% if mode=='Random' %}selected{% endif %}>Random</option>
+        <option {% if mode=='Manual' %}selected{% endif %}>Manual</option>
+      </select>
+
+      <label>Composition Type:</label>
+      <select name="composition">
+        <option {% if comp_type=='Max-Min' %}selected{% endif %}>Max-Min</option>
+        <option {% if comp_type=='Max-Product' %}selected{% endif %}>Max-Product</option>
+      </select>
+
+      <label>Rows (X):</label>
+      <input type="number" name="rows" value="{{ rows }}" min="2" max="6" style="width:60px">
+
+      <label>Cols (Y):</label>
+      <input type="number" name="cols" value="{{ cols }}" min="2" max="6" style="width:60px">
+
+      <button type="submit" name="compute" class="btn">Compute</button>
+      <button type="submit" name="explain" class="btn">🧠 Explain</button>
+    </div>
+
+    {% if mode == "Manual" %}
+    <div class="matrix-container">
+      <div>
+        <h4>Matrix R(x, y)</h4>
+        <table>
+          {% for i in range(rows) %}
+          <tr>
+            {% for j in range(cols) %}
+            <td><input type="number" name="R_{{i}}_{{j}}" step="0.01" min="0" max="1" value="{{ R[i][j] }}"></td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+
+      <div>
+        <h4>Matrix S(y, z)</h4>
+        <table>
+          {% for i in range(cols) %}
+          <tr>
+            {% for j in range(rows) %}
+            <td><input type="number" name="S_{{i}}_{{j}}" step="0.01" min="0" max="1" value="{{ S[i][j] }}"></td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="matrix-display">
+      <div>
+        <h4>R(x, y)</h4>
+        <pre>{{ R }}</pre>
+      </div>
+      <div>
+        <h4>S(y, z)</h4>
+        <pre>{{ S }}</pre>
+      </div>
+    </div>
+    {% endif %}
+  </form>
+
+  {% if T %}
+  <h3>Result: T(x,z)</h3>
+  <div id="chartT"></div>
+  {% endif %}
+
+  {% if explanation %}
+  <div class="explain-box">
+    <h3>🧠 AI Explanation</h3>
+    <span id="explanation-loading" style="display: none;">Generating explanation...</span>
+    <div class="explanation-content">{{ explanation|safe }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="{{ url_for('static', filename='js/relations.js') }}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const T = {{ T|tojson if T else 'null' }};
+    if (T) plotMatrix("chartT", T, "T(x, z) — Composition Result");
+  });
+</script>
+{% endblock %}

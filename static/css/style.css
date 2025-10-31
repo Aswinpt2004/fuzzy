@@ -233,3 +233,30 @@ input[type="text"] {
   border: 1px solid #ddd;
 }
 
+.matrix-container {
+  display: flex;
+  justify-content: space-around;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+table td input {
+  width: 50px;
+  text-align: center;
+}
+
+.matrix-display {
+  display: flex;
+  justify-content: space-around;
+}
+
+.matrix-display pre {
+  background: #f7f7f7;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}

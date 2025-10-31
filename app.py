@@ -216,9 +216,73 @@ def api_membership_explain():
 
    
 
-@app.route("/relations")
+@app.route("/relations", methods=["GET", "POST"])
 def relations():
-    return render_template("relations.html")
+    import numpy as np
+    from modules import fuzzy_relations
+
+    rows = 3
+    cols = 3
+    R = np.zeros((rows, cols))
+    S = np.zeros((cols, rows))
+    T = None
+    mode = "Random"
+    comp_type = "Max-Min"
+    explanation = None
+
+    if request.method == "POST":
+        mode = request.form.get("mode", "Random")
+        comp_type = request.form.get("composition", "Max-Min")
+        rows = int(request.form.get("rows", 3))
+        cols = int(request.form.get("cols", 3))
+
+        if mode == "Random":
+            R = fuzzy_relations.random_relation(rows, cols)
+            S = fuzzy_relations.random_relation(cols, rows)
+        else:
+            # Manual: parse numeric grid entries instead of eval()
+            try:
+                R = np.zeros((rows, cols))
+                S = np.zeros((cols, rows))
+                for i in range(rows):
+                    for j in range(cols):
+                        R[i, j] = float(request.form.get(f"R_{i}_{j}", 0))
+                for i in range(cols):
+                    for j in range(rows):
+                        S[i, j] = float(request.form.get(f"S_{i}_{j}", 0))
+            except Exception as e:
+                explanation = f"⚠️ Invalid entry: {e}"
+
+        # Compute composition
+        try:
+            if comp_type == "Max-Min":
+                T = fuzzy_relations.max_min_composition(R, S)
+            else:
+                T = fuzzy_relations.max_product_composition(R, S)
+        except Exception as e:
+            explanation = f"⚠️ Composition error: {e}"
+
+        # Gemini explanation
+        if "explain" in request.form:
+            explanation = explain_with_llm(
+                "Fuzzy Relation Composition",
+                f"R(x,y): {R.tolist()}, S(y,z): {S.tolist()}",
+                f"Composition Type: {comp_type}",
+                f"Result: {T.tolist() if T is not None else 'N/A'}"
+            )
+
+    return render_template(
+        "relations.html",
+        R=R.tolist(),
+        S=S.tolist(),
+        T=T.tolist() if T is not None else None,
+        rows=rows,
+        cols=cols,
+        mode=mode,
+        comp_type=comp_type,
+        explanation=explanation
+    )
+
 
 @app.route("/implications")
 def implications():
