@@ -182,9 +182,9 @@ def api_membership():
         elif mf_type == "Gaussian":
             y = fuzzy_membership.gaussian(x, *params)
         elif mf_type == "Bell":
-                y = fuzzy_membership.bell_shaped(x, *params)
+            y = fuzzy_membership.bell_shaped(x, *params)
         elif mf_type == "Sigmoid":
-                y = fuzzy_membership.sigmoid(x, *params)
+            y = fuzzy_membership.sigmoid(x, *params)
         else:
             y = np.zeros_like(x)
 
