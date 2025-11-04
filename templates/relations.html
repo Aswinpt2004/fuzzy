@@ -24,9 +24,10 @@
       <input type="number" name="cols" value="{{ cols }}" min="2" max="6" style="width:60px">
     </div>
 
-    <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;">
-      <button type="submit" name="compute" class="btn">Compute</button>
-      <button type="submit" name="explain" class="btn" onclick="showLoading()">🧠 Explain</button>
+    <div style="display: flex; justify-content: center; gap: 0.75rem; margin-top: 1rem; align-items:center; flex-wrap:wrap;">
+      <button type="submit" name="compute" class="btn primary">Compute</button>
+      <button type="submit" name="explain" class="btn secondary" onclick="showLoading()">Explain</button>
+      <button type="button" id="refresh-btn" class="btn ghost" title="Generate new random R and S" onclick="refreshRandom()">New Random</button>
     </div>
     <div style="text-align: center; margin-top: 0.5rem;">
       <span id="explanation-loading" style="display: none; color: #555; font-style: italic;">Generating explanation...</span>
@@ -107,7 +108,7 @@
 
   {% if explanation %}
   <div class="explain-box">
-    <h3>🧠 AI Explanation</h3>
+    <h3>AI Explanation</h3>
     <div class="explanation-content">{{ explanation|safe }}</div>
   </div>
   {% endif %}
@@ -116,6 +117,17 @@
 <script>
   function showLoading() {
     document.getElementById('explanation-loading').style.display = 'inline';
+  }
+
+  function refreshRandom() {
+    // Force the mode select to Random and submit the form to generate new R/S
+    const modeSelect = document.querySelector('select[name="mode"]');
+    if (modeSelect) modeSelect.value = 'Random';
+    const form = document.querySelector('form.form-area');
+    if (form) {
+      // submit the form (POST) so backend will regenerate random relations
+      form.submit();
+    }
   }
 </script>
 

@@ -7,21 +7,22 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <!-- Use Poppins for a clean, modern UI with Inter as fallback -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 
 <body>
   <nav>
     <div class="nav-container">
-      <h2 class="nav-logo">🧠 Fuzzy Toolbox</h2>
+  <h2 class="nav-logo">Fuzzy Toolbox</h2>
       <div class="nav-links">
         <a href="/">Home</a>
         <a href="/sets">Fuzzy Sets</a>
         <a href="/membership">Membership</a>
         <a href="/relations">Relations</a>
         <a href="/implications">Implications</a>
-        <a href="/fis">FIS</a>
-        <a href="/fis">FIS</a>
+  <a href="/fis">FIS</a>
+        <button class="btn ghost" onclick="location.reload()" title="Refresh page" style="margin-left:0.6rem;">Refresh</button>
       </div>
     </div>
   </nav>

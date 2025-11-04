@@ -37,16 +37,20 @@ def fuzzy_sets_page():
         A_str = request.form.get("setA")
         B_str = request.form.get("setB")
         operation = request.form.get("operation")
+        apply_to = request.form.get("apply_to", "A")
 
         labelsA, A = fuzzy_sets.parse_fuzzy(A_str)
         labelsB, B = fuzzy_sets.parse_fuzzy(B_str)
 
         try:
             # --- Perform operation ---
+            # Determine target for single-set operations (A or B)
+            target = A if apply_to == "A" else B
+
             if operation == "Equality":
                 result = fuzzy_sets.equality(A, B)
             elif operation == "Complement":
-                result = fuzzy_sets.complement(A)
+                result = fuzzy_sets.complement(target)
             elif operation == "Intersection":
                 result = fuzzy_sets.intersection(A, B)
             elif operation == "Union":
@@ -54,9 +58,11 @@ def fuzzy_sets_page():
             elif operation == "Algebraic Product":
                 result = fuzzy_sets.algebraic_product(A, B)
             elif operation == "Multiplication by Crisp Number":
-                result = fuzzy_sets.crisp_multiply(A, 0.5)
+                # default crisp multiplier 0.5; applies to selected set
+                result = fuzzy_sets.crisp_multiply(target, 0.5)
             elif operation == "Power of Fuzzy Set":
-                result = fuzzy_sets.power(A, 2)
+                # default exponent 2; applies to selected set
+                result = fuzzy_sets.power(target, 2)
             elif operation == "Algebraic Sum":
                 result = fuzzy_sets.algebraic_sum(A, B)
             elif operation == "Algebraic Difference":
@@ -85,7 +91,8 @@ def fuzzy_sets_page():
                     result.tolist() if hasattr(result, "tolist") else result,
                 )
 
-            labels = labelsA or labelsB
+            # If a single-set operation was applied to B, prefer B's labels for plotting
+            labels = labelsA if apply_to == "A" else labelsB
             A_plot = A.tolist()
             B_plot = B.tolist()
 
