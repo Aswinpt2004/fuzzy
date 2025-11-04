@@ -203,34 +203,86 @@ input[type="text"] {
 
 .explanation-content {
   font-family: 'Inter', sans-serif;
-  line-height: 1.6;
+  line-height: 1.8;
   font-size: 0.95rem;
 }
 
-.explanation-content h3,
-.explanation-content h4 {
-  margin-top: 1rem;
-  color: #000;
-  border-bottom: 1px solid #ccc;
-  padding-bottom: 0.3rem;
+.explanation-content p {
+  margin: 0.8rem 0;
 }
 
-.explanation-content ul {
-  margin: 0.5rem 0 1rem 1.5rem;
+.explanation-content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.8rem;
+  color: #000;
+  border-bottom: 2px solid #000;
+  padding-bottom: 0.4rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.explanation-content h4 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #222;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 0.3rem;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.explanation-content ul,
+.explanation-content ol {
+  margin: 0.8rem 0 1rem 1.8rem;
+  line-height: 1.7;
+}
+
+.explanation-content li {
+  margin: 0.4rem 0;
+}
+
+.explanation-content strong {
+  color: #000;
+  font-weight: 600;
 }
 
 .explanation-content code {
   background: #f2f2f2;
   border-radius: 4px;
-  padding: 2px 5px;
+  padding: 2px 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
 }
 
 .explanation-content pre {
   background: #f7f7f7;
-  padding: 10px;
+  padding: 12px;
   border-radius: 6px;
   overflow-x: auto;
   border: 1px solid #ddd;
+  margin: 1rem 0;
+  line-height: 1.5;
+}
+
+/* Math formula styling */
+.explanation-content .MathJax,
+.explanation-content mjx-container {
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Block math centered */
+.explanation-content mjx-container[display="true"] {
+  display: block !important;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+/* Better readability for inline math */
+.explanation-content mjx-container[display="false"] {
+  display: inline-block;
+  margin: 0 0.2rem;
 }
 
 .matrix-container {
@@ -259,4 +311,17 @@ table td input {
   padding: 10px;
   border-radius: 6px;
   font-size: 0.9rem;
+}
+
+/* Tables to show numeric matrices nicely aligned */
+.matrix-table {
+  border-collapse: collapse;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.matrix-table td, .matrix-table th {
+  border: 1px solid #d3d3d3;
+  padding: 6px 10px;
+  text-align: center;
+  min-width: 48px;
 }
