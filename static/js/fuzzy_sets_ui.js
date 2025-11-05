@@ -43,12 +43,8 @@
       // Set A always visible
       setARow.style.display = 'block';
 
-      // If no operation selected (default) or a binary operation, show Set B
-      if(op === '' || binaryOps.has(op)){
+        // Show Set B for all operations (user requested both visible by default)
         setBRow.style.display = 'block';
-      } else {
-        setBRow.style.display = 'none';
-      }
 
       if(scalarOps.has(op)){
         scalarRow.style.display = 'flex';
@@ -65,14 +61,32 @@
     // initial state based on server-rendered operation value
     updateVisibility();
 
-    opSelect.addEventListener('change', updateVisibility);
+  // single-set ops that should show the apply-to selector
+  const singleOps = new Set(['Complement', 'Multiplication by Crisp Number', 'Power of Fuzzy Set']);
+
+    function toggleApplyRowOnChange() {
+      const val = opSelect.value || '';
+      const applyRow = qs('#apply-to-row');
+      if (!applyRow) return;
+      if (val !== '' && singleOps.has(val)) {
+        applyRow.style.display = 'block';
+      } else {
+        applyRow.style.display = 'none';
+      }
+    }
+
+    // wire both updateVisibility and apply-row toggling on change
+    opSelect.addEventListener('change', function(){
+      updateVisibility();
+      toggleApplyRowOnChange();
+    });
 
     // client-side validation on submit
     form.addEventListener('submit', (ev)=>{
       const op = opSelect.value || '';
-      const setA = qs('textarea[name="setA"]').value.trim();
-      const setB = qs('textarea[name="setB"]').value.trim();
-      const scalarVal = qs('input[name="scalar"]').value.trim();
+  const setA = qs('textarea[name="setA"]')?.value.trim() || '';
+  const setB = qs('textarea[name="setB"]')?.value.trim() || '';
+  const scalarVal = qs('input[name="scalar"]') ? qs('input[name="scalar"]').value.trim() : '';
 
       // Set A must not be empty
       if(!setA){

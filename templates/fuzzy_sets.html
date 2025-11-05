@@ -1,24 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="content-card fuzzy-sets-card">
+  <style>
+    /* Local override to guarantee textarea shape even if global CSS has parse errors */
+    .fuzzy-sets-card .form-col textarea{
+      height: 40px !important;
+      min-height: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      border-radius: 6px !important;
+      border: 1px solid #bfbfbf !important;
+      background: #ffffff !important;
+      box-sizing: border-box !important;
+    }
+  </style>
   <h2>Fuzzy Set Operations</h2>
   <p>Enter fuzzy sets in the form: <code>(x1,0.5),(x2,0.3),(x3,0.7)</code></p>
 
   <form method="POST" class="form-area">
-    <div class="form-grid">
-      <div class="form-col" id="seta-row">
-        <label>Set A:</label>
-        <textarea name="setA" rows="4" required>{{ request.form.setA or "(x1,0.5),(x2,0.3),(x3,0.7)" }}</textarea>
-      </div>
-
-      <div class="form-col" id="setb-row">
-        <label>Set B:</label>
-        <textarea name="setB" rows="4">{{ request.form.setB or "(x1,0.4),(x2,0.6),(x3,0.5)" }}</textarea>
-      </div>
-    </div>
-
-  <label>Operation:</label>
-  <select id="operation-select" name="operation" required>
+    <div class="op-row">
+      <div class="op-control">
+        <label>Operation:</label>
+        <select id="operation-select" name="operation" required>
       <option value="">-- Select Operation --</option>
       <option>Equality</option>
       <option>Complement</option>
@@ -34,19 +37,37 @@
       <option>Cartesian Product</option>
       <option>Composition</option>
     </select>
+      </div>
 
-    <!-- For single-set operations, let the user choose which set (A or B) the operation applies to -->
-    {% set show_apply = operation in ["Complement", "Multiplication by Crisp Number", "Power of Fuzzy Set"] %}
-    <div id="apply-to-row" style="{% if show_apply %}display:block;{% else %}display:none;{% endif %}">
-      <label>Apply to:</label>
-      <select id="apply-to-select" name="apply_to">
-        <option value="A" {% if request.form.get('apply_to','A') == 'A' %}selected{% endif %}>Set A</option>
-        <option value="B" {% if request.form.get('apply_to') == 'B' %}selected{% endif %}>Set B</option>
-      </select>
+      <p>
+      </p>
+
+      <!-- For single-set operations, let the user choose which set (A or B) the operation applies to -->
+      <div id="apply-to-row" class="apply-inline" style="display:none;">
+        <label>Apply to:</label>
+        <select id="apply-to-select" name="apply_to" class="apply-to-select">
+          <option value="A" {% if request.form.get('apply_to','A') == 'A' %}selected{% endif %}>Set A</option>
+          <option value="B" {% if request.form.get('apply_to') == 'B' %}selected{% endif %}>Set B</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="operation-hint" class="muted" style="font-size:0.95rem;margin:0.5rem 0 1rem 0">{% if operation %}{{ operation }}{% endif %}</div>
+
+    <div class="form-grid">
+      <div class="form-col" id="seta-row">
+        <label>Set A:</label>
+        <textarea name="setA" rows="4" required>{{ request.form.setA or "(x1,0.5),(x2,0.3),(x3,0.7)" }}</textarea>
+      </div>
+
+      <div class="form-col" id="setb-row">
+        <label>Set B:</label>
+        <textarea name="setB" rows="4">{{ request.form.setB or "(x1,0.4),(x2,0.6),(x3,0.5)" }}</textarea>
+      </div>
     </div>
 
     <div id="scalar-row" style="display:none; margin-top:0.75rem">
-      <label style="margin-right:0.5rem">Scalar (k or p):</label>
+      <label style="margin-right:0.5rem">Scalar value :</label>
       <input type="number" step="0.01" name="scalar" placeholder="e.g. 0.5 or 2" class="scalar-input">
     </div>
 
@@ -110,7 +131,7 @@
 
 <!-- Plotly Graph Section -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-<script src="{{ url_for('static', filename='js/fuzzy_sets_ui.js') }}"></script>
+<script src="{{ asset('js/fuzzy_sets_ui.js') }}"></script>
 <script>
 {% if result is not none %}
   {% if chart_type == "line" %}
@@ -168,30 +189,28 @@
   }
 </script>
 <script>
-  // Show/hide the "Apply to" control depending on selected operation
+    // Show/hide the "Apply to" control depending on selected operation
   document.addEventListener('DOMContentLoaded', function () {
     const opSelect = document.getElementById('operation-select');
     const applyRow = document.getElementById('apply-to-row');
     if (!opSelect || !applyRow) return;
 
-    const singleOps = [
-      'Complement',
-      'Multiplication by Crisp Number',
-      'Power of Fuzzy Set'
-    ];
+    // Show 'Apply to' selector for single-set operations. Keep in sync with the external JS.
+    const singleOps = [ 'Complement', 'Multiplication by Crisp Number', 'Power of Fuzzy Set' ];
 
-    function toggleApplyRow() {
+    function toggleApplyRowOnChange() {
       const val = opSelect.value || '';
-      if (singleOps.includes(val)) {
+      // only change visibility after the user selects an operation (non-empty)
+      if (val !== '' && singleOps.includes(val)) {
         applyRow.style.display = 'block';
       } else {
         applyRow.style.display = 'none';
       }
     }
 
-    opSelect.addEventListener('change', toggleApplyRow);
-    // initial state
-    toggleApplyRow();
+    opSelect.addEventListener('change', toggleApplyRowOnChange);
+    // run once to initialize per server-rendered value
+    toggleApplyRowOnChange();
   });
 </script>
 {% if explanation %}

@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, url_for
 from dotenv import load_dotenv
 import os
 import numpy as np
@@ -13,6 +13,20 @@ from flask import jsonify, request
 load_dotenv()
 
 app = Flask(__name__)
+
+
+# Cache-busting helper for static assets: appends file mtime as v= query
+@app.context_processor
+def asset_helper():
+    import os
+    def asset(path: str):
+        try:
+            full_path = os.path.join(app.root_path, 'static', path.replace('/', os.sep))
+            v = int(os.stat(full_path).st_mtime)
+        except Exception:
+            v = 0
+        return url_for('static', filename=path, v=v)
+    return dict(asset=asset)
 
 
 # 🏠 Home route
