@@ -132,51 +132,90 @@
 <!-- Plotly Graph Section -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script src="{{ asset('js/fuzzy_sets_ui.js') }}"></script>
+
+<!-- Provide data as JSON so the JS remains valid and lint-friendly -->
+<script type="application/json" id="fs-data">
+{
+  "hasResult": {{ (result is not none)|tojson }},
+  "chartType": {{ chart_type|tojson }},
+  "labels": {{ labels|tojson }},
+  "A": {{ A|tojson }},
+  "B": {{ B|tojson }},
+  "result": {{ result|tojson if result is not none else 'null' }},
+  "operation": {{ (operation or '')|tojson }}
+}
+</script>
+
 <script>
-{% if result is not none %}
-  {% if chart_type == "line" %}
-    const traceA = {
-      x: {{ labels|tojson }},
-      y: {{ A|tojson }},
-      mode: 'lines+markers',
-      name: 'Set A',
-      line: { color: 'rgba(0,0,0,0.4)', dash: 'dot', width: 2 },
-      marker: { color: 'rgba(0,0,0,0.4)', size: 6 }
-    };
+  document.addEventListener('DOMContentLoaded', function(){
+    const el = document.getElementById('fs-data');
+    if (!el) return;
+    let data;
+    try { data = JSON.parse(el.textContent || '{}'); } catch (e) { return; }
+    if (!data.hasResult) return;
+    if (data.chartType === 'line') {
+      const traceA = {
+        x: data.labels,
+        y: data.A,
+        mode: 'lines+markers',
+        name: 'Set A',
+        line: { color: '#666666', dash: 'dot', width: 3 },
+        marker: { color: '#666666', size: 8 }
+      };
 
-    const traceB = {
-      x: {{ labels|tojson }},
-      y: {{ B|tojson }},
-      mode: 'lines+markers',
-      name: 'Set B',
-      line: { color: 'rgba(100,100,100,0.6)', dash: 'dash', width: 2 },
-      marker: { color: 'rgba(100,100,100,0.6)', size: 6 }
-    };
+      const traceB = {
+        x: data.labels,
+        y: data.B,
+        mode: 'lines+markers',
+        name: 'Set B',
+        line: { color: '#999999', dash: 'dash', width: 3 },
+        marker: { color: '#999999', size: 8 }
+      };
 
-    const traceResult = {
-      x: {{ labels|tojson }},
-      y: {{ result|tojson }},
-      mode: 'lines+markers',
-      name: '{{ operation }} Result',
-      line: { color: 'black', width: 3 },
-      marker: { color: 'black', size: 7 }
-    };
+      const traceResult = {
+        x: data.labels,
+        y: data.result,
+        mode: 'lines+markers',
+        name: (data.operation || 'Result') + ' Result',
+        line: { color: '#000000', width: 4 },
+        marker: { color: '#000000', size: 10 }
+      };
 
-    const layout = {
-      title: '{{ operation }}',
-      paper_bgcolor: '#fff',
-      plot_bgcolor: '#fff',
-      font: { color: '#000' },
-      margin: { t: 40 },
-      yaxis: { title: 'Membership (μ)', range: [0, 1.05] },
-      xaxis: { title: 'Elements' },
-      legend: { x: 0.8, y: 1.1, orientation: 'h' }
-    };
+      const layout = {
+        title: {
+          text: data.operation || 'Result',
+          font: { size: 20, color: '#000', weight: 'bold' }
+        },
+        paper_bgcolor: '#ffffff',
+        plot_bgcolor: '#ffffff',
+        font: { color: '#000000', size: 14 },
+        margin: { t: 80, b: 80, l: 80, r: 80 },
+        yaxis: { 
+          title: { text: 'Membership (μ)', font: { size: 16, color: '#000' } },
+          range: [0, 1.05],
+          gridcolor: '#e0e0e0',
+          zerolinecolor: '#000000',
+          zerolinewidth: 2
+        },
+        xaxis: { 
+          title: { text: 'Elements', font: { size: 16, color: '#000' } },
+          gridcolor: '#e0e0e0'
+        },
+        legend: { 
+          x: 0.5, 
+          y: 1.15, 
+          xanchor: 'center',
+          orientation: 'h',
+          bgcolor: 'rgba(255,255,255,0.8)',
+          bordercolor: '#000',
+          borderwidth: 1
+        },
+        height: 500
+      };
 
-    Plotly.newPlot('chart', [traceA, traceB, traceResult], layout);
-
-  {% endif %}
-{% endif %}
+      Plotly.newPlot('chart', [traceA, traceB, traceResult], layout, {responsive: true});
+    }
+  });
 </script>
 <script>
   const explainBtn = document.querySelector('button[name="explain"]');

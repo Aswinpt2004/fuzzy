@@ -80,21 +80,36 @@ async function updatePlot() {
     x: data.x,
     y: data.y,
     mode: "lines",
-    line: { color: "black", width: 3 },
+    line: { color: "#000000", width: 4 },
     fill: "tozeroy",
+    fillcolor: "rgba(0, 0, 0, 0.2)",
     name: mfType
   };
 
   const layout = {
-    title: `${mfType} Membership Function`,
-    paper_bgcolor: "#fff",
-    plot_bgcolor: "#fff",
-    font: { color: "#000" },
-    yaxis: { range: [0, 1.05], title: "Membership (μ)" },
-    xaxis: { title: "Universe of Discourse (x)" }
+    title: {
+      text: `${mfType} Membership Function`,
+      font: { size: 20, color: '#000', weight: 'bold' }
+    },
+    paper_bgcolor: "#ffffff",
+    plot_bgcolor: "#ffffff",
+    font: { color: "#000000", size: 14 },
+    margin: { t: 80, b: 80, l: 80, r: 80 },
+    yaxis: { 
+      range: [0, 1.05], 
+      title: { text: "Membership (μ)", font: { size: 16 } },
+      gridcolor: '#e0e0e0',
+      zerolinecolor: '#000000',
+      zerolinewidth: 2
+    },
+    xaxis: { 
+      title: { text: "Universe of Discourse (x)", font: { size: 16 } },
+      gridcolor: '#e0e0e0'
+    },
+    height: 500
   };
 
-  Plotly.newPlot(chartDiv, [trace], layout);
+  Plotly.newPlot(chartDiv, [trace], layout, {responsive: true});
 }
 
 // ---------- Explain Button ----------

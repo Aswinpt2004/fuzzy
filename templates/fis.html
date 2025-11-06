@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-card">
+  <h2>🧠 Fuzzy Inference System (FIS)</h2>
+  <p>Complete fuzzy inference workflow: Fuzzification → Rule Application → Aggregation → Defuzzification</p>
+
+  <form method="POST" class="form-area" id="fisForm">
+    
+    <!-- Rule Builder Section -->
+    <div class="section-header" style="margin-top:2rem; margin-bottom:1rem; padding:0.75rem; background:#f0f0f0; border-left:4px solid #000;">
+      <h3 style="margin:0;">📋 Rule Base Builder</h3>
+    </div>
+
+    <div id="rulesContainer" style="margin-bottom:1.5rem;">
+      <!-- Rules will be added here dynamically -->
+      <div class="rule-item" data-rule-index="0" style="background:#f9f9f9; padding:1rem; margin-bottom:1rem; border:2px solid #ddd; border-radius:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <strong style="font-size:1.1rem;">Rule 1</strong>
+          <button type="button" class="btn-remove-rule" onclick="removeRule(0)" style="background:#dc3545; color:#fff; border:none; padding:0.25rem 0.75rem; cursor:pointer; border-radius:3px; font-size:0.9rem;">✖ Remove</button>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem;">
+          <div>
+            <label style="font-size:0.9rem; font-weight:600;">IF input is:</label>
+            <input type="text" name="rule_0_antecedent" placeholder="low" value="low" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+          </div>
+          <div>
+            <label style="font-size:0.9rem; font-weight:600;">THEN output is:</label>
+            <input type="text" name="rule_0_consequent" placeholder="slow" value="slow" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+          </div>
+          <div>
+            <label style="font-size:0.9rem; font-weight:600;">Weight (0-1):</label>
+            <input type="number" name="rule_0_weight" min="0" max="1" step="0.1" value="1.0" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.5rem;">
+      <button type="button" onclick="addRule()" class="btn secondary" style="background:#28a745; color:#fff;">➕ Add Rule</button>
+      <input type="hidden" name="rule_count" id="ruleCount" value="1">
+    </div>
+
+    <!-- Input/Output Configuration -->
+    <div class="section-header" style="margin-top:2rem; margin-bottom:1rem; padding:0.75rem; background:#f0f0f0; border-left:4px solid #000;">
+      <h3 style="margin:0;">🎯 Input & Output Configuration</h3>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-col">
+        <label>Input Fuzzy Set (Fuzzified):</label>
+        <textarea name="input_set" rows="3" required placeholder="(low,0.2),(medium,0.5),(high,0.3)">{{ request.form.input_set or "(low,0.2),(medium,0.5),(high,0.3)" }}</textarea>
+        <small class="muted">Represents fuzzified crisp input across linguistic terms</small>
+      </div>
+
+      <div class="form-col">
+        <label>Output Universe:</label>
+        <textarea name="output_set" rows="3" required placeholder="(slow,0),(normal,0),(fast,0)">{{ request.form.output_set or "(slow,0),(normal,0),(fast,0)" }}</textarea>
+        <small class="muted">Output linguistic terms (values will be inferred)</small>
+      </div>
+    </div>
+
+    <!-- Inference Settings -->
+    <div class="section-header" style="margin-top:2rem; margin-bottom:1rem; padding:0.75rem; background:#f0f0f0; border-left:4px solid #000;">
+      <h3 style="margin:0;">⚙️ Inference Settings</h3>
+    </div>
+
+    <div class="form-row" style="margin-top:1rem;">
+      <div class="form-col">
+        <label>Inference Method:</label>
+        <select name="inference_method" class="dropdown">
+          <option value="mamdani" {% if request.form.inference_method == 'mamdani' %}selected{% endif %}>Mamdani (Min-Max)</option>
+          <option value="larsen" {% if request.form.inference_method == 'larsen' %}selected{% endif %}>Larsen (Product-Max)</option>
+          <option value="zadeh" {% if request.form.inference_method == 'zadeh' %}selected{% endif %}>Zadeh Implication</option>
+        </select>
+      </div>
+
+      <div class="form-col">
+        <label>T-Norm (for conjunction):</label>
+        <select name="tnorm" class="dropdown">
+          <option value="minimum" {% if request.form.tnorm == 'minimum' %}selected{% endif %}>Minimum (Standard)</option>
+          <option value="product" {% if request.form.tnorm == 'product' %}selected{% endif %}>Algebraic Product</option>
+          <option value="bounded" {% if request.form.tnorm == 'bounded' %}selected{% endif %}>Bounded Product</option>
+          <option value="drastic" {% if request.form.tnorm == 'drastic' %}selected{% endif %}>Drastic Product</option>
+        </select>
+      </div>
+
+      <div class="form-col">
+        <label>Aggregation Method:</label>
+        <select name="aggregation" class="dropdown">
+          <option value="maximum" {% if request.form.aggregation == 'maximum' %}selected{% endif %}>Maximum (Standard)</option>
+          <option value="sum" {% if request.form.aggregation == 'sum' %}selected{% endif %}>Sum</option>
+          <option value="probsum" {% if request.form.aggregation == 'probsum' %}selected{% endif %}>Probabilistic Sum</option>
+          <option value="mean" {% if request.form.aggregation == 'mean' %}selected{% endif %}>Mean</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Defuzzification Settings -->
+    <div class="section-header" style="margin-top:2rem; margin-bottom:1rem; padding:0.75rem; background:#f0f0f0; border-left:4px solid #000;">
+      <h3 style="margin:0;">🎲 Defuzzification Method</h3>
+    </div>
+
+    <div class="form-row" style="margin-top:1rem;">
+      <div class="form-col">
+        <label><strong>Maxima Methods (Height Method):</strong></label>
+        <select name="defuzz_method" class="dropdown" id="defuzzSelect">
+          <optgroup label="Maxima Methods">
+            <option value="height" {% if request.form.defuzz_method == 'height' %}selected{% endif %}>Height Method</option>
+            <option value="mom" {% if request.form.defuzz_method == 'mom' %}selected{% endif %}>Mean of Maxima (MoM)</option>
+            <option value="fom" {% if request.form.defuzz_method == 'fom' %}selected{% endif %}>First of Maxima (FoM)</option>
+            <option value="lom" {% if request.form.defuzz_method == 'lom' %}selected{% endif %}>Last of Maxima (LoM)</option>
+          </optgroup>
+          <optgroup label="Centroid Methods">
+            <option value="centroid" {% if request.form.defuzz_method == 'centroid' or not request.form.defuzz_method %}selected{% endif %}>Center of Gravity (CoG)</option>
+            <option value="cos" {% if request.form.defuzz_method == 'cos' %}selected{% endif %}>Center of Sums (CoS)</option>
+            <option value="coa" {% if request.form.defuzz_method == 'coa' %}selected{% endif %}>Center of Area (CoA)</option>
+          </optgroup>
+          <optgroup label="Other Methods">
+            <option value="bisector" {% if request.form.defuzz_method == 'bisector' %}selected{% endif %}>Bisector Method</option>
+            <option value="weighted_average" {% if request.form.defuzz_method == 'weighted_average' %}selected{% endif %}>Weighted Average</option>
+            <option value="lambda_cut" {% if request.form.defuzz_method == 'lambda_cut' %}selected{% endif %}>Lambda-Cut Method</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="form-col" id="lambdaContainer" style="display:none;">
+        <label>Lambda Value (for Lambda-cut):</label>
+        <input type="number" name="lambda_value" min="0" max="1" step="0.05" value="0.5" class="dropdown" placeholder="0.5">
+        <small class="muted">Threshold for alpha-cut (0 to 1)</small>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:2rem;">
+      <button type="submit" name="compute" class="btn primary">🚀 Run Inference</button>
+      <button type="submit" name="explain" class="btn secondary">💡 Explain with AI</button>
+      <button type="button" onclick="resetForm()" class="btn" style="background:#6c757d; color:#fff;">🔄 Reset</button>
+    </div>
+  </form>
+
+
+  {% if aggregated_output is not none %}
+  <div class="result-box">
+    <h3>📊 Inference Results</h3>
+    
+    <!-- Step-by-step breakdown -->
+    <div style="background:#f0f8ff; padding:1rem; margin-bottom:1.5rem; border-left:4px solid #007bff; border-radius:4px;">
+      <h4 style="margin-top:0;">🔍 Inference Steps:</h4>
+      <ol style="margin:0; padding-left:1.5rem; line-height:1.8;">
+        <li><strong>Fuzzification:</strong> Convert crisp input to fuzzy sets</li>
+        <li><strong>Rule Evaluation:</strong> Apply {{ num_rules or 'multiple' }} rule(s) using {{ inference_method|capitalize }} method</li>
+        <li><strong>Aggregation:</strong> Combine rule outputs using {{ aggregation or 'maximum' }} method</li>
+        <li><strong>Defuzzification:</strong> Convert to crisp output using {{ defuzz_method|upper }}</li>
+      </ol>
+    </div>
+    
+    <div class="result-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+      <div style="background:#fff; padding:1rem; border:2px solid #ddd; border-radius:4px;">
+        <h4 style="margin-top:0;">📈 Aggregated Output Set</h4>
+        <p><strong>Membership Values:</strong></p>
+        <div style="font-family:monospace; background:#f9f9f9; padding:0.75rem; border-radius:3px;">
+          {% for label, value in zip(output_labels, aggregated_output) %}
+            <div style="margin-bottom:0.25rem;">
+              <span style="font-weight:600; color:#0066cc;">{{ label }}:</span> 
+              <span style="color:#000;">{{ "%.4f"|format(value) }}</span>
+              <span style="color:#999;">│{{ '█' * (value * 20)|int }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div style="background:#fff; padding:1rem; border:2px solid #28a745; border-radius:4px;">
+        <h4 style="margin-top:0;">🎯 Crisp Output</h4>
+        <p style="font-size:2.5rem; font-weight:700; color:#28a745; margin:0.5rem 0; text-align:center;">
+          {{ "%.4f"|format(crisp_output) }}
+        </p>
+        <div style="text-align:center; margin-top:1rem;">
+          <small class="muted" style="display:block; margin-bottom:0.25rem;"><strong>Method:</strong> {{ defuzz_method|upper }}</small>
+          {% if lambda_value is not none %}
+          <small class="muted" style="display:block;"><strong>Lambda value:</strong> {{ lambda_value }}</small>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div id="chart"></div>
+  </div>
+  {% endif %}
+
+  {% if explanation %}
+  <div class="explain-box">
+    <h3>💡 AI Explanation</h3>
+    <div>{{ explanation|safe }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script type="application/json" id="fis-data">
+{
+  "hasResult": {{ (aggregated_output is not none)|tojson }},
+  "output_labels": {{ output_labels|tojson if output_labels else '[]' }},
+  "aggregated_output": {{ aggregated_output|tojson if aggregated_output is not none else 'null' }},
+  "crisp_output": {{ crisp_output|tojson if crisp_output is not none else 'null' }}
+}
+</script>
+
+<script>
+// Rule management
+let ruleCounter = 1;
+
+function addRule() {
+  const container = document.getElementById('rulesContainer');
+  const newRule = document.createElement('div');
+  newRule.className = 'rule-item';
+  newRule.setAttribute('data-rule-index', ruleCounter);
+  newRule.style.cssText = 'background:#f9f9f9; padding:1rem; margin-bottom:1rem; border:2px solid #ddd; border-radius:4px;';
+  
+  newRule.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+      <strong style="font-size:1.1rem;">Rule ${ruleCounter + 1}</strong>
+      <button type="button" class="btn-remove-rule" onclick="removeRule(${ruleCounter})" style="background:#dc3545; color:#fff; border:none; padding:0.25rem 0.75rem; cursor:pointer; border-radius:3px; font-size:0.9rem;">✖ Remove</button>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem;">
+      <div>
+        <label style="font-size:0.9rem; font-weight:600;">IF input is:</label>
+        <input type="text" name="rule_${ruleCounter}_antecedent" placeholder="medium" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+      </div>
+      <div>
+        <label style="font-size:0.9rem; font-weight:600;">THEN output is:</label>
+        <input type="text" name="rule_${ruleCounter}_consequent" placeholder="normal" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+      </div>
+      <div>
+        <label style="font-size:0.9rem; font-weight:600;">Weight (0-1):</label>
+        <input type="number" name="rule_${ruleCounter}_weight" min="0" max="1" step="0.1" value="1.0" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+      </div>
+    </div>
+  `;
+  
+  container.appendChild(newRule);
+  ruleCounter++;
+  document.getElementById('ruleCount').value = ruleCounter;
+}
+
+function removeRule(index) {
+  const ruleItem = document.querySelector(`[data-rule-index="${index}"]`);
+  if (ruleItem) {
+    // Don't allow removing the last rule
+    const remainingRules = document.querySelectorAll('.rule-item').length;
+    if (remainingRules <= 1) {
+      alert('At least one rule is required!');
+      return;
+    }
+    ruleItem.remove();
+  }
+}
+
+function resetForm() {
+  if (confirm('Are you sure you want to reset the form?')) {
+    document.getElementById('fisForm').reset();
+    // Keep only the first rule
+    const container = document.getElementById('rulesContainer');
+    const rules = container.querySelectorAll('.rule-item');
+    rules.forEach((rule, index) => {
+      if (index > 0) rule.remove();
+    });
+    ruleCounter = 1;
+  }
+}
+
+// Show/hide lambda value input based on defuzzification method
+document.addEventListener('DOMContentLoaded', function() {
+  const defuzzSelect = document.getElementById('defuzzSelect');
+  const lambdaContainer = document.getElementById('lambdaContainer');
+  
+  if (defuzzSelect && lambdaContainer) {
+    defuzzSelect.addEventListener('change', function() {
+      if (this.value === 'lambda_cut') {
+        lambdaContainer.style.display = 'block';
+      } else {
+        lambdaContainer.style.display = 'none';
+      }
+    });
+    
+    // Check initial value
+    if (defuzzSelect.value === 'lambda_cut') {
+      lambdaContainer.style.display = 'block';
+    }
+  }
+});
+
+// Plotting
+document.addEventListener('DOMContentLoaded', function(){
+  const el = document.getElementById('fis-data');
+  if (!el) return;
+  let data;
+  try { 
+    data = JSON.parse(el.textContent || '{}'); 
+  } catch (e) { 
+    console.error('Failed to parse FIS data', e);
+    return; 
+  }
+  
+  if (!data.hasResult || !data.aggregated_output) return;
+  
+  // Bar chart for aggregated output
+  const trace = {
+    x: data.output_labels,
+    y: data.aggregated_output,
+    type: 'bar',
+    marker: {
+      color: '#000000',
+      line: {
+        color: '#000000',
+        width: 2
+      },
+      opacity: 0.8
+    },
+    name: 'Aggregated Output'
+  };
+
+  // Add vertical line for crisp output
+  const crispLine = {
+    x: [data.crisp_output, data.crisp_output],
+    y: [0, Math.max(...data.aggregated_output) * 1.1],
+    mode: 'lines',
+    line: {
+      color: '#ff0000',
+      width: 4,
+      dash: 'dash'
+    },
+    name: 'Crisp Output',
+    showlegend: true
+  };
+
+  const layout = {
+    title: {
+      text: 'Fuzzy Inference Output',
+      font: { size: 20, color: '#000', weight: 'bold' }
+    },
+    paper_bgcolor: '#ffffff',
+    plot_bgcolor: '#ffffff',
+    font: { color: '#000000', size: 14 },
+    yaxis: { 
+      title: { text: 'Membership (μ)', font: { size: 16 } },
+      range: [0, 1.05],
+      gridcolor: '#e0e0e0',
+      zerolinecolor: '#000000',
+      zerolinewidth: 2
+    },
+    xaxis: { 
+      title: { text: 'Output Linguistic Terms', font: { size: 16 } },
+      gridcolor: '#e0e0e0'
+    },
+    bargap: 0.2,
+    margin: { l: 80, r: 80, t: 80, b: 80 },
+    height: 500,
+    legend: {
+      bgcolor: 'rgba(255,255,255,0.8)',
+      bordercolor: '#000',
+      borderwidth: 1
+    }
+  };
+
+  Plotly.newPlot('chart', [trace, crispLine], layout, {responsive: true});
+});
+</script>
+
+{% if explanation %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const explainBox = document.querySelector('.explain-box');
+    if (explainBox && window.MathJax) {
+      MathJax.typeset([explainBox]);
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}

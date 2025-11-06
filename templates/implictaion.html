@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-card">
+  <h2>Fuzzy Implication Operators</h2>
+  <p>Generate fuzzy implication relations from antecedent and consequent sets</p>
+
+  <form method="POST" class="form-area">
+    <div class="form-grid">
+      <div class="form-col">
+        <label>Antecedent Set A:</label>
+        <textarea name="setA" rows="3" required placeholder="(x1,0.5),(x2,0.8),(x3,0.3)">{{ request.form.setA or "(low,0.2),(medium,0.5),(high,0.8)" }}</textarea>
+      </div>
+
+      <div class="form-col">
+        <label>Consequent Set B:</label>
+        <textarea name="setB" rows="3" required placeholder="(y1,0.6),(y2,0.4),(y3,0.9)">{{ request.form.setB or "(slow,0.3),(normal,0.6),(fast,0.9)" }}</textarea>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:1rem;">
+      <div class="form-col">
+        <label>Implication Operator:</label>
+        <select name="implication" required class="dropdown">
+          <option value="mamdani" {% if request.form.implication == 'mamdani' %}selected{% endif %}>Mamdani (Min)</option>
+          <option value="larsen" {% if request.form.implication == 'larsen' %}selected{% endif %}>Larsen (Product)</option>
+          <option value="zadeh" {% if request.form.implication == 'zadeh' %}selected{% endif %}>Zadeh (Logical)</option>
+          <option value="reichenbach" {% if request.form.implication == 'reichenbach' %}selected{% endif %}>Reichenbach</option>
+          <option value="goguen" {% if request.form.implication == 'goguen' %}selected{% endif %}>Goguen</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:1.5rem;">
+      <button type="submit" name="compute" class="btn primary">Generate Implication</button>
+      <button type="submit" name="explain" class="btn secondary">Explain</button>
+    </div>
+  </form>
+
+  {% if result is not none %}
+  <div class="result-box">
+    <h3>Implication Matrix ({{ implication_type }})</h3>
+    
+    <div class="matrix-display">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th>A \ B</th>
+            {% for label in labels_B %}
+            <th>{{ label }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in range(result|length) %}
+          <tr>
+            <th>{{ labels_A[i] }}</th>
+            {% for j in range(result[i]|length) %}
+            <td>{{ "%.2f"|format(result[i][j]) }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div id="chart"></div>
+  </div>
+  {% endif %}
+
+  {% if explanation %}
+  <div class="explain-box">
+    <h3>AI Explanation</h3>
+    <div>{{ explanation|safe }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script type="application/json" id="impl-data">
+{
+  "hasResult": {{ (result is not none)|tojson }},
+  "labels_A": {{ labels_A|tojson if labels_A else '[]' }},
+  "labels_B": {{ labels_B|tojson if labels_B else '[]' }},
+  "result": {{ result|tojson if result is not none else 'null' }},
+  "implication_type": {{ implication_type|tojson if implication_type else '""' }}
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const el = document.getElementById('impl-data');
+  if (!el) return;
+  let data;
+  try { 
+    data = JSON.parse(el.textContent || '{}'); 
+  } catch (e) { 
+    console.error('Failed to parse implication data', e);
+    return; 
+  }
+  
+  if (!data.hasResult || !data.result) return;
+  
+  const trace = {
+    z: data.result,
+    x: data.labels_B,
+    y: data.labels_A,
+    type: 'heatmap',
+    colorscale: [
+      [0, '#ffffff'],
+      [0.5, '#888888'],
+      [1, '#000000']
+    ],
+    showscale: true,
+    colorbar: {
+      title: { text: 'μ', font: { size: 16 } },
+      titleside: 'right',
+      thickness: 20,
+      len: 0.7
+    }
+  };
+
+  const layout = {
+    title: {
+      text: data.implication_type + ' Implication',
+      font: { size: 20, color: '#000', weight: 'bold' }
+    },
+    paper_bgcolor: '#ffffff',
+    plot_bgcolor: '#ffffff',
+    font: { color: '#000000', size: 14 },
+    xaxis: { 
+      title: { text: 'Consequent B', font: { size: 16 } },
+      side: 'bottom',
+      gridcolor: '#e0e0e0'
+    },
+    yaxis: { 
+      title: { text: 'Antecedent A', font: { size: 16 } },
+      autorange: 'reversed',
+      gridcolor: '#e0e0e0'
+    },
+    margin: { l: 100, r: 100, t: 80, b: 80 },
+    height: 500
+  };
+
+  Plotly.newPlot('chart', [trace], layout, {responsive: true});
+});
+</script>
+
+{% if explanation %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const explainBox = document.querySelector('.explain-box');
+    if (explainBox && window.MathJax) {
+      MathJax.typeset([explainBox]);
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,13 +1,10 @@
 # app.py
-from flask import Flask, render_template, request, url_for
+from flask import Flask, render_template, request, url_for, jsonify
 from dotenv import load_dotenv
 import os
 import numpy as np
-from modules import fuzzy_sets
+from modules import fuzzy_sets, fuzzy_membership
 from utils.llm_explainer import explain_with_llm
-from modules import fuzzy_membership
-from flask import jsonify
-from flask import jsonify, request
 
 # Load environment variables
 load_dotenv()
@@ -251,6 +248,9 @@ def relations():
     comp_type = "Max-Min"
     explanation = None
 
+    props_R = None
+    props_T = None
+
     if request.method == "POST":
         mode = request.form.get("mode", "Random")
         comp_type = request.form.get("composition", "Max-Min")
@@ -283,6 +283,17 @@ def relations():
         except Exception as e:
             explanation = f"⚠️ Composition error: {e}"
 
+        # Property checks (only applicable for square relations)
+        try:
+            props_R = fuzzy_relations.check_all_properties(R, comp_type)
+        except Exception:
+            props_R = None
+        try:
+            if T is not None:
+                props_T = fuzzy_relations.check_all_properties(T, comp_type)
+        except Exception:
+            props_T = None
+
         # Gemini explanation
         if "explain" in request.form:
             explanation = explain_with_llm(
@@ -301,17 +312,143 @@ def relations():
         cols=cols,
         mode=mode,
         comp_type=comp_type,
+        props_R=props_R,
+        props_T=props_T,
         explanation=explanation
     )
 
 
-@app.route("/implications")
+# ================================
+# 🔗 Fuzzy Implications Page
+# ================================
+@app.route("/implications", methods=["GET", "POST"])
 def implications():
-    return render_template("implications.html")
+    from modules import fuzzy_implications
+    
+    result = None
+    labels_A = []
+    labels_B = []
+    implication_type = None
+    explanation = None
+    
+    if request.method == "POST":
+        A_str = request.form.get("setA")
+        B_str = request.form.get("setB")
+        implication = request.form.get("implication", "mamdani")
+        
+        # Parse fuzzy sets
+        labels_A, A = fuzzy_sets.parse_fuzzy(A_str)
+        labels_B, B = fuzzy_sets.parse_fuzzy(B_str)
+        
+        # Get implication method
+        impl_func = fuzzy_implications.get_implication_method(implication)
+        result = impl_func(A, B)
+        implication_type = implication.capitalize()
+        
+        # Explanation
+        if "explain" in request.form:
+            params = {
+                'antecedent_A': A_str,
+                'consequent_B': B_str,
+                'operator': implication_type
+            }
+            context = "Fuzzy Implication"
+            prompt = f"""
+            Antecedent Set A: {A_str}
+            Consequent Set B: {B_str}
+            Implication Operator: {implication_type}
+            
+            Explain how the {implication_type} implication operator works and show the computation.
+            """
+            explanation = explain_with_llm(context, implication_type, params, prompt)
+    
+    return render_template(
+        "implictaion.html",
+        result=result.tolist() if result is not None else None,
+        labels_A=labels_A,
+        labels_B=labels_B,
+        implication_type=implication_type,
+        explanation=explanation
+    )
 
-@app.route("/fis")
+
+@app.route("/fis", methods=["GET", "POST"])
 def fis():
-    return render_template("fis.html")
+    from modules import fuzzy_implications, defuzzification
+    
+    aggregated_output = None
+    crisp_output = None
+    output_labels = []
+    defuzz_method = None
+    explanation = None
+    lambda_value = None
+    
+    if request.method == "POST":
+        input_str = request.form.get("input_set")
+        output_str = request.form.get("output_set")
+        inference_method = request.form.get("inference_method", "mamdani")
+        defuzz_method = request.form.get("defuzz_method", "centroid")
+        lambda_value = request.form.get("lambda_value", type=float)
+        
+        # Parse sets
+        input_labels, input_values = fuzzy_sets.parse_fuzzy(input_str)
+        output_labels, output_values = fuzzy_sets.parse_fuzzy(output_str)
+        
+        # Simple inference: use implication to generate output
+        # For demonstration, we'll use the input values as the aggregated output
+        # In a real FIS, you'd apply rules here
+        impl_func = fuzzy_implications.get_implication_method(inference_method)
+        
+        # Aggregate (for demo, just copy input to output space)
+        aggregated_output = input_values[:len(output_values)]
+        if len(aggregated_output) < len(output_values):
+            aggregated_output = np.pad(aggregated_output, (0, len(output_values) - len(aggregated_output)))
+        
+        # Defuzzification
+        # Create numeric universe for defuzzification
+        y = np.arange(len(output_labels))
+        
+        # Handle lambda-cut defuzzification specially
+        if defuzz_method == 'lambda_cut':
+            if lambda_value is None:
+                lambda_value = 0.5  # Default
+            crisp_output = defuzzification.lambda_cut_defuzzification(y, aggregated_output, lambda_value)
+        else:
+            defuzz_func = defuzzification.get_defuzzification_method(defuzz_method)
+            crisp_output = defuzz_func(y, aggregated_output)
+        
+        # Explanation
+        if "explain" in request.form:
+            params = {
+                'input_set': input_str,
+                'inference_method': inference_method,
+                'defuzzification_method': defuzz_method,
+                'crisp_output': crisp_output
+            }
+            context = "Fuzzy Inference System"
+            prompt = f"""
+            Input Set: {input_str}
+            Inference Method: {inference_method}
+            Defuzzification Method: {defuzz_method}
+            Crisp Output: {crisp_output:.3f}
+            
+            Explain the fuzzy inference process and how the crisp output was calculated.
+            """
+            explanation = explain_with_llm(context, "FIS", params, prompt)
+    
+    return render_template(
+        "fis.html",
+        aggregated_output=aggregated_output.tolist() if aggregated_output is not None else None,
+        crisp_output=crisp_output,
+        output_labels=output_labels,
+        defuzz_method=defuzz_method,
+        inference_method=inference_method if request.method == "POST" else None,
+        aggregation=request.form.get("aggregation", "maximum") if request.method == "POST" else None,
+        num_rules=1,  # Update this when implementing actual rule parsing
+        lambda_value=lambda_value,
+        explanation=explanation,
+        zip=zip  # Make zip available in template
+    )
 
 
 if __name__ == "__main__":

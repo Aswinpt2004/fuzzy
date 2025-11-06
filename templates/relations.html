@@ -92,7 +92,7 @@
   </form>
 
   {% if T %}
-  <h3>Result: T(x,z)</h3>
+  <h3 style="font-weight:700">Result: T(x,z)</h3>
   <table class="matrix-table" style="margin-top: .5rem;">
     {% set rcount = T|length %}
     {% set ccount = T[0]|length %}
@@ -105,6 +105,33 @@
     {% endfor %}
   </table>
   {% endif %}
+
+  <!-- Relation Property Checks -->
+  <div style="margin-top:1.25rem; display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:0.75rem;">
+    <div style="border:1px solid #ddd; border-radius:10px; padding:0.75rem; background:#fff;">
+      <h4 style="margin:.2rem 0 .4rem; font-weight:700;">R Properties</h4>
+      {% if props_R %}
+        {% set pr = props_R %}
+        <div><strong>Reflexive:</strong> {% if pr.reflexivity.applicable %}{% if pr.reflexivity.is_reflexive %}Yes{% else %}No{% endif %} (min diag={{ pr.reflexivity.min_diag }}){% else %}N/A{% endif %}</div>
+        <div><strong>Symmetric:</strong> {% if pr.symmetry.applicable %}{% if pr.symmetry.is_symmetric %}Yes{% else %}No{% endif %} (max |R-Rᵀ|={{ pr.symmetry.max_diff }}){% else %}N/A{% endif %}</div>
+        <div><strong>Transitive ({{ comp_type }}):</strong> {% if pr.transitivity.applicable %}{% if pr.transitivity.is_transitive %}Yes{% else %}No{% endif %} (max violation={{ pr.transitivity.max_violation }}){% else %}N/A{% endif %}</div>
+      {% else %}
+        <div class="muted">No checks available</div>
+      {% endif %}
+    </div>
+
+    <div style="border:1px solid #ddd; border-radius:10px; padding:0.75rem; background:#fff;">
+      <h4 style="margin:.2rem 0 .4rem; font-weight:700;">T Properties</h4>
+      {% if props_T %}
+        {% set pt = props_T %}
+        <div><strong>Reflexive:</strong> {% if pt.reflexivity.applicable %}{% if pt.reflexivity.is_reflexive %}Yes{% else %}No{% endif %} (min diag={{ pt.reflexivity.min_diag }}){% else %}N/A{% endif %}</div>
+        <div><strong>Symmetric:</strong> {% if pt.symmetry.applicable %}{% if pt.symmetry.is_symmetric %}Yes{% else %}No{% endif %} (max |T-Tᵀ|={{ pt.symmetry.max_diff }}){% else %}N/A{% endif %}</div>
+        <div><strong>Transitive ({{ comp_type }}):</strong> {% if pt.transitivity.applicable %}{% if pt.transitivity.is_transitive %}Yes{% else %}No{% endif %} (max violation={{ pt.transitivity.max_violation }}){% else %}N/A{% endif %}</div>
+      {% else %}
+        <div class="muted">No checks available</div>
+      {% endif %}
+    </div>
+  </div>
 
   {% if explanation %}
   <div class="explain-box">
