@@ -36,6 +36,103 @@
     </div>
   </form>
 
+  <!-- Rule Base System Section -->
+  <div class="section-header" style="margin-top:3rem; margin-bottom:1rem; padding:0.75rem; background:#f0f0f0; border-left:4px solid #000;">
+    <h3 style="margin:0;">Rule Base System</h3>
+  </div>
+
+  <form method="POST" class="form-area" id="ruleForm">
+    
+    <!-- Rule Builder Section -->
+    <div id="rulesContainer" style="margin-bottom:1.5rem;">
+      <!-- Rules will be added here dynamically -->
+      <div class="rule-item" data-rule-index="0" style="background:#f9f9f9; padding:1rem; margin-bottom:1rem; border:2px solid #ddd; border-radius:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <strong style="font-size:1.1rem;">Rule 1</strong>
+          <button type="button" class="btn-remove-rule" onclick="removeRuleItem(0)" style="background:#dc3545; color:#fff; border:none; padding:0.25rem 0.75rem; cursor:pointer; border-radius:3px; font-size:0.9rem;">✖ Remove</button>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:0.75rem;">
+          <div>
+            <label style="font-size:0.9rem; font-weight:600;">Rule Type:</label>
+            <select name="rb_rule_0_type" onchange="toggleRuleElseInput(0)" class="dropdown" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+              <option value="if-then" {% if request.form.get('rb_rule_0_type','if-then') == 'if-then' %}selected{% endif %}>IF → THEN</option>
+              <option value="if-then-else" {% if request.form.get('rb_rule_0_type') == 'if-then-else' %}selected{% endif %}>IF → THEN → ELSE</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.9rem; font-weight:600;">Implication Method:</label>
+            <select name="rb_rule_0_implication" class="dropdown" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+              <option value="mamdani" {% if request.form.get('rb_rule_0_implication','mamdani') == 'mamdani' %}selected{% endif %}>Mamdani (Min)</option>
+              <option value="larsen" {% if request.form.get('rb_rule_0_implication') == 'larsen' %}selected{% endif %}>Larsen (Product)</option>
+              <option value="zadeh" {% if request.form.get('rb_rule_0_implication') == 'zadeh' %}selected{% endif %}>Zadeh (Logical)</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Input Sets for IF-THEN -->
+        <div class="form-grid" style="margin-bottom:0.75rem;">
+          <div class="form-col">
+            <label style="font-size:0.9rem; font-weight:600;">Antecedent Set A (IF):</label>
+            <textarea name="rb_rule_0_set_a" rows="2" placeholder="(low,0.2),(medium,0.5),(high,0.8)" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">{{ request.form.get('rb_rule_0_set_a', '(low,0.2),(medium,0.5),(high,0.8)') }}</textarea>
+          </div>
+          <div class="form-col">
+            <label style="font-size:0.9rem; font-weight:600;">Consequent Set B (THEN):</label>
+            <textarea name="rb_rule_0_set_b" rows="2" placeholder="(slow,0.3),(normal,0.6),(fast,0.9)" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">{{ request.form.get('rb_rule_0_set_b', '(slow,0.3),(normal,0.6),(fast,0.9)') }}</textarea>
+          </div>
+        </div>
+        
+        <!-- Input Set for ELSE (IF-THEN-ELSE) -->
+  {% if request.form.get('rb_rule_0_type') == 'if-then-else' %}
+  <div id="rb_rule_0_else" style="margin-top:0.75rem; display:block;">
+  {% else %}
+  <div id="rb_rule_0_else" style="margin-top:0.75rem; display:none;">
+  {% endif %}
+          <div class="form-col">
+            <label style="font-size:0.9rem; font-weight:600;">Alternative Consequent Set C (ELSE):</label>
+            <textarea name="rb_rule_0_set_c" rows="2" placeholder="(very_slow,0.1),(very_normal,0.3)" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">{{ request.form.get('rb_rule_0_set_c', '') }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.5rem;">
+      <button type="button" onclick="addRuleItem()" class="btn secondary" style="background:#28a745; color:#fff;">➕ Add Rule</button>
+      <input type="hidden" name="rb_rule_count" id="rbRuleCount" value="1">
+    </div>
+
+    <div class="btn-row" style="margin-top:1.5rem;">
+      <button type="submit" name="eval_rules" class="btn primary">Evaluate Rules</button>
+      <button type="submit" name="explain_rules" class="btn secondary">Explain with AI</button>
+    </div>
+  </form>
+
+  {% if rule_results %}
+  <div class="result-box" style="margin-top:2rem;">
+    <h3>Rule Evaluation Results</h3>
+    <div style="background:#f9f9f9; padding:1rem; border-radius:4px;">
+      {% for rule in rule_results %}
+      <div style="margin-bottom:1rem; padding:0.75rem; background:#fff; border-left:3px solid #007bff;">
+        <strong>Rule {{ loop.index }} ({{ rule.type }})</strong><br>
+        <div style="margin-top:0.5rem; font-size:0.95rem;">
+          <strong>Antecedent A:</strong> {{ rule.set_a }}<br>
+          <strong>Consequent B:</strong> {{ rule.set_b }}<br>
+          {% if rule.set_c %}
+          <strong>Alternative C:</strong> {{ rule.set_c }}<br>
+          {% endif %}
+          <strong>Method:</strong> {{ rule.implication }}<br>
+        </div>
+        <div style="margin-top:0.5rem; padding:0.5rem; background:#e7f3ff; border-radius:3px;">
+          <strong>Implication Matrix:</strong><br>
+          <div style="font-family:monospace; font-size:0.85rem; margin-top:0.25rem;">
+            {{ rule.matrix_display|safe }}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   {% if result is not none %}
   <div class="result-box">
     <h3>Implication Matrix ({{ implication_type }})</h3>
@@ -87,6 +184,87 @@
 </script>
 
 <script>
+// Rule management for rule base system
+let rbRuleCounter = 1;
+
+function addRuleItem() {
+  const container = document.getElementById('rulesContainer');
+  const newRule = document.createElement('div');
+  newRule.className = 'rule-item';
+  newRule.setAttribute('data-rule-index', rbRuleCounter);
+  newRule.style.cssText = 'background:#f9f9f9; padding:1rem; margin-bottom:1rem; border:2px solid #ddd; border-radius:4px;';
+  
+  newRule.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+      <strong style="font-size:1.1rem;">Rule ${rbRuleCounter + 1}</strong>
+      <button type="button" class="btn-remove-rule" onclick="removeRuleItem(${rbRuleCounter})" style="background:#dc3545; color:#fff; border:none; padding:0.25rem 0.75rem; cursor:pointer; border-radius:3px; font-size:0.9rem;">✖ Remove</button>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:0.75rem;">
+      <div>
+        <label style="font-size:0.9rem; font-weight:600;">Rule Type:</label>
+        <select name="rb_rule_${rbRuleCounter}_type" onchange="toggleRuleElseInput(${rbRuleCounter})" class="dropdown" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+          <option value="if-then" selected>IF → THEN</option>
+          <option value="if-then-else">IF → THEN → ELSE</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.9rem; font-weight:600;">Implication Method:</label>
+        <select name="rb_rule_${rbRuleCounter}_implication" class="dropdown" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+          <option value="mamdani" selected>Mamdani (Min)</option>
+          <option value="larsen">Larsen (Product)</option>
+          <option value="zadeh">Zadeh (Logical)</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-grid" style="margin-bottom:0.75rem;">
+      <div class="form-col">
+        <label style="font-size:0.9rem; font-weight:600;">Antecedent Set A (IF):</label>
+        <textarea name="rb_rule_${rbRuleCounter}_set_a" rows="2" placeholder="(low,0.2),(medium,0.5),(high,0.8)" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;"></textarea>
+      </div>
+      <div class="form-col">
+        <label style="font-size:0.9rem; font-weight:600;">Consequent Set B (THEN):</label>
+        <textarea name="rb_rule_${rbRuleCounter}_set_b" rows="2" placeholder="(slow,0.3),(normal,0.6),(fast,0.9)" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;"></textarea>
+      </div>
+    </div>
+    
+    <div id="rb_rule_${rbRuleCounter}_else" style="margin-top:0.75rem; display:none;">
+      <div class="form-col">
+        <label style="font-size:0.9rem; font-weight:600;">Alternative Consequent Set C (ELSE):</label>
+        <textarea name="rb_rule_${rbRuleCounter}_set_c" rows="2" placeholder="(very_slow,0.1),(very_normal,0.3)" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;"></textarea>
+      </div>
+    </div>
+  `;
+  
+  container.appendChild(newRule);
+  rbRuleCounter++;
+  document.getElementById('rbRuleCount').value = rbRuleCounter;
+}
+
+function toggleRuleElseInput(index) {
+  const select = document.querySelector(`select[name="rb_rule_${index}_type"]`);
+  const elseDiv = document.getElementById(`rb_rule_${index}_else`);
+  if (!select || !elseDiv) return;
+  if (select.value === 'if-then-else') {
+    elseDiv.style.display = 'block';
+  } else {
+    elseDiv.style.display = 'none';
+  }
+}
+
+function removeRuleItem(index) {
+  const ruleItem = document.querySelector(`[data-rule-index="${index}"]`);
+  if (ruleItem) {
+    const remainingRules = document.querySelectorAll('.rule-item').length;
+    if (remainingRules <= 1) {
+      alert('At least one rule is required!');
+      return;
+    }
+    ruleItem.remove();
+  }
+}
+
+// Implication matrix visualization
 document.addEventListener('DOMContentLoaded', function(){
   const el = document.getElementById('impl-data');
   if (!el) return;
@@ -100,48 +278,43 @@ document.addEventListener('DOMContentLoaded', function(){
   
   if (!data.hasResult || !data.result) return;
   
-  const trace = {
-    z: data.result,
-    x: data.labels_B,
-    y: data.labels_A,
-    type: 'heatmap',
-    colorscale: [
-      [0, '#ffffff'],
-      [0.5, '#888888'],
-      [1, '#000000']
-    ],
-    showscale: true,
-    colorbar: {
-      title: { text: 'μ', font: { size: 16 } },
-      titleside: 'right',
-      thickness: 20,
-      len: 0.7
-    }
-  };
+  // Convert implication matrix rows into line traces (one trace per antecedent A)
+  const traces = data.result.map((row, i) => {
+    return {
+      x: data.labels_B,
+      y: row,
+      type: 'scatter',
+      mode: 'lines+markers',
+      name: data.labels_A && data.labels_A[i] ? data.labels_A[i] : `A${i+1}`,
+      line: { width: 2 },
+      marker: { size: 6 }
+    };
+  });
 
   const layout = {
     title: {
-      text: data.implication_type + ' Implication',
-      font: { size: 20, color: '#000', weight: 'bold' }
+      text: data.implication_type + ' Implication (line plot per antecedent)',
+      font: { size: 18, color: '#000', weight: 'bold' }
     },
     paper_bgcolor: '#ffffff',
     plot_bgcolor: '#ffffff',
-    font: { color: '#000000', size: 14 },
+    font: { color: '#000000', size: 13 },
     xaxis: { 
-      title: { text: 'Consequent B', font: { size: 16 } },
+      title: { text: 'Consequent B', font: { size: 14 } },
       side: 'bottom',
       gridcolor: '#e0e0e0'
     },
     yaxis: { 
-      title: { text: 'Antecedent A', font: { size: 16 } },
-      autorange: 'reversed',
+      title: { text: 'Membership (μ)', font: { size: 14 } },
+      range: [0, 1],
       gridcolor: '#e0e0e0'
     },
-    margin: { l: 100, r: 100, t: 80, b: 80 },
-    height: 500
+    legend: { orientation: 'h', y: -0.2 },
+    margin: { l: 80, r: 40, t: 80, b: 100 },
+    height: 420
   };
 
-  Plotly.newPlot('chart', [trace], layout, {responsive: true});
+  Plotly.newPlot('chart', traces, layout, {responsive: true});
 });
 </script>
 

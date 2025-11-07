@@ -330,37 +330,117 @@ def implications():
     labels_B = []
     implication_type = None
     explanation = None
+    rule_results = None
     
     if request.method == "POST":
-        A_str = request.form.get("setA")
-        B_str = request.form.get("setB")
-        implication = request.form.get("implication", "mamdani")
-        
-        # Parse fuzzy sets
-        labels_A, A = fuzzy_sets.parse_fuzzy(A_str)
-        labels_B, B = fuzzy_sets.parse_fuzzy(B_str)
-        
-        # Get implication method
-        impl_func = fuzzy_implications.get_implication_method(implication)
-        result = impl_func(A, B)
-        implication_type = implication.capitalize()
-        
-        # Explanation
-        if "explain" in request.form:
-            params = {
-                'antecedent_A': A_str,
-                'consequent_B': B_str,
-                'operator': implication_type
-            }
-            context = "Fuzzy Implication"
-            prompt = f"""
-            Antecedent Set A: {A_str}
-            Consequent Set B: {B_str}
-            Implication Operator: {implication_type}
+        # Rule evaluation with structured rule base
+        if "eval_rules" in request.form or "explain_rules" in request.form:
+            rule_count = int(request.form.get("rb_rule_count", 1))
+            rule_results = []
             
-            Explain how the {implication_type} implication operator works and show the computation.
-            """
-            explanation = explain_with_llm(context, implication_type, params, prompt)
+            for i in range(rule_count):
+                rule_type = request.form.get(f"rb_rule_{i}_type", "if-then")
+                implication_method = request.form.get(f"rb_rule_{i}_implication", "mamdani")
+                set_a_str = request.form.get(f"rb_rule_{i}_set_a", "")
+                set_b_str = request.form.get(f"rb_rule_{i}_set_b", "")
+                set_c_str = request.form.get(f"rb_rule_{i}_set_c", "")
+                
+                if not set_a_str or not set_b_str:
+                    continue
+                
+                # Parse fuzzy sets
+                labels_a, A = fuzzy_sets.parse_fuzzy(set_a_str)
+                labels_b, B = fuzzy_sets.parse_fuzzy(set_b_str)
+                
+                # Get implication method
+                impl_func = fuzzy_implications.get_implication_method(implication_method)
+                matrix = impl_func(A, B)
+                
+                # Format matrix for display
+                matrix_display = "<table style='border-collapse:collapse; font-size:0.8rem;'>"
+                matrix_display += "<tr><th style='padding:2px 6px; border:1px solid #ccc;'>A\\B</th>"
+                for lb in labels_b:
+                    matrix_display += f"<th style='padding:2px 6px; border:1px solid #ccc;'>{lb}</th>"
+                matrix_display += "</tr>"
+                for idx, la in enumerate(labels_a):
+                    matrix_display += f"<tr><th style='padding:2px 6px; border:1px solid #ccc;'>{la}</th>"
+                    for val in matrix[idx]:
+                        matrix_display += f"<td style='padding:2px 6px; border:1px solid #ccc; text-align:center;'>{val:.2f}</td>"
+                    matrix_display += "</tr>"
+                matrix_display += "</table>"
+                
+                rule_data = {
+                    'type': rule_type.upper(),
+                    'implication': implication_method.capitalize(),
+                    'set_a': set_a_str,
+                    'set_b': set_b_str,
+                    'set_c': set_c_str if rule_type == 'if-then-else' else None,
+                    'matrix_display': matrix_display
+                }
+                
+                # For IF-THEN-ELSE, also compute alternative consequent
+                if rule_type == 'if-then-else' and set_c_str:
+                    labels_c, C = fuzzy_sets.parse_fuzzy(set_c_str)
+                    matrix_c = impl_func(A, C)
+                    
+                    matrix_c_display = "<table style='border-collapse:collapse; font-size:0.8rem; margin-top:0.5rem;'>"
+                    matrix_c_display += "<tr><th style='padding:2px 6px; border:1px solid #ccc;'>A\\C</th>"
+                    for lc in labels_c:
+                        matrix_c_display += f"<th style='padding:2px 6px; border:1px solid #ccc;'>{lc}</th>"
+                    matrix_c_display += "</tr>"
+                    for idx, la in enumerate(labels_a):
+                        matrix_c_display += f"<tr><th style='padding:2px 6px; border:1px solid #ccc;'>{la}</th>"
+                        for val in matrix_c[idx]:
+                            matrix_c_display += f"<td style='padding:2px 6px; border:1px solid #ccc; text-align:center;'>{val:.2f}</td>"
+                        matrix_c_display += "</tr>"
+                    matrix_c_display += "</table>"
+                    
+                    rule_data['matrix_display'] += "<br><strong>ELSE Matrix:</strong>" + matrix_c_display
+                
+                rule_results.append(rule_data)
+            
+            # Explanation for rule base
+            if "explain_rules" in request.form:
+                context = "Fuzzy Implication Rule Base"
+                prompt = f"""
+                Explain the fuzzy implication rule base system with {len(rule_results)} rules.
+                Each rule uses implication operators to map antecedent fuzzy sets to consequent fuzzy sets.
+                Rules can be IF-THEN or IF-THEN-ELSE types.
+                Show how the implication matrices are computed for each rule.
+                """
+                explanation = explain_with_llm(context, "Rule Base", {}, prompt)
+        
+        # Standard implication matrix
+        elif "compute" in request.form or "explain" in request.form:
+            A_str = request.form.get("setA")
+            B_str = request.form.get("setB")
+            implication = request.form.get("implication", "mamdani")
+            
+            # Parse fuzzy sets
+            labels_A, A = fuzzy_sets.parse_fuzzy(A_str)
+            labels_B, B = fuzzy_sets.parse_fuzzy(B_str)
+            
+            # Get implication method
+            impl_func = fuzzy_implications.get_implication_method(implication)
+            result = impl_func(A, B)
+            implication_type = implication.capitalize()
+            
+            # Explanation
+            if "explain" in request.form:
+                params = {
+                    'antecedent_A': A_str,
+                    'consequent_B': B_str,
+                    'operator': implication_type
+                }
+                context = "Fuzzy Implication"
+                prompt = f"""
+                Antecedent Set A: {A_str}
+                Consequent Set B: {B_str}
+                Implication Operator: {implication_type}
+                
+                Explain how the {implication_type} implication operator works and show the computation.
+                """
+                explanation = explain_with_llm(context, implication_type, params, prompt)
     
     return render_template(
         "implictaion.html",
@@ -368,7 +448,8 @@ def implications():
         labels_A=labels_A,
         labels_B=labels_B,
         implication_type=implication_type,
-        explanation=explanation
+        explanation=explanation,
+        rule_results=rule_results
     )
 
 
@@ -448,6 +529,90 @@ def fis():
         lambda_value=lambda_value,
         explanation=explanation,
         zip=zip  # Make zip available in template
+    )
+
+
+# 🎲 Defuzzification Page
+@app.route("/defuzzification", methods=["GET", "POST"])
+def defuzzification_page():
+    from modules import defuzzification
+    
+    crisp_output = None
+    labels = []
+    memberships = None
+    universe = None
+    method_name = None
+    explanation = None
+    lambda_value = None
+    
+    if request.method == "POST":
+        fuzzy_set_str = request.form.get("fuzzy_set")
+        universe_str = request.form.get("universe", "")
+        defuzz_method = request.form.get("defuzz_method", "centroid")
+        lambda_value = request.form.get("lambda_value", type=float)
+        
+        # Parse fuzzy set
+        labels, memberships = fuzzy_sets.parse_fuzzy(fuzzy_set_str)
+        memberships = np.array(memberships)
+        
+        # Parse universe (optional)
+        if universe_str.strip():
+            universe = np.array([float(x.strip()) for x in universe_str.split(',')])
+        else:
+            universe = np.arange(len(labels), dtype=float)
+        
+        # Get method name for display
+        method_names = {
+            'centroid': 'Center of Gravity (CoG)',
+            'cog': 'Center of Gravity (CoG)',
+            'bisector': 'Bisector',
+            'mom': 'Mean of Maxima (MoM)',
+            'fom': 'First of Maxima (FoM)',
+            'lom': 'Last of Maxima (LoM)',
+            'height': 'Height Method',
+            'cos': 'Center of Sums (CoS)',
+            'coa': 'Center of Area (CoA)',
+            'wtaver': 'Weighted Average',
+            'lambda_cut': 'Lambda-Cut'
+        }
+        method_name = method_names.get(defuzz_method, defuzz_method.upper())
+        
+        # Defuzzify
+        if defuzz_method == 'lambda_cut':
+            if lambda_value is None:
+                lambda_value = 0.5
+            crisp_output = defuzzification.lambda_cut_defuzzification(universe, memberships, lambda_value)
+        else:
+            defuzz_func = defuzzification.get_defuzzification_method(defuzz_method)
+            crisp_output = defuzz_func(universe, memberships)
+        
+        # Explanation
+        if "explain" in request.form:
+            params = {
+                'fuzzy_set': fuzzy_set_str,
+                'method': defuzz_method,
+                'crisp_output': crisp_output
+            }
+            context = "Defuzzification"
+            prompt = f"""
+            Fuzzy Set: {fuzzy_set_str}
+            Method: {method_name}
+            Crisp Output: {crisp_output:.4f}
+            
+            Explain how the {method_name} defuzzification method works and how it calculated this crisp output.
+            """
+            explanation = explain_with_llm(context, defuzz_method, params, prompt)
+    
+    return render_template(
+        "defuzzification.html",
+        crisp_output=crisp_output,
+        labels=labels,
+        memberships=memberships.tolist() if memberships is not None else None,
+        universe=universe.tolist() if universe is not None else None,
+        method_name=method_name,
+        lambda_value=lambda_value,
+        explanation=explanation,
+        zip=zip
     )
 
 

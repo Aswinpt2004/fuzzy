@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="content-card">
-  <h2>🧠 Fuzzy Inference System (FIS)</h2>
+  <h2>Fuzzy Inference System (FIS)</h2>
   <p>Complete fuzzy inference workflow: Fuzzification → Rule Application → Aggregation → Defuzzification</p>
 
   <form method="POST" class="form-area" id="fisForm">
     
     <!-- Rule Builder Section -->
     <div class="section-header" style="margin-top:2rem; margin-bottom:1rem; padding:0.75rem; background:#f0f0f0; border-left:4px solid #000;">
-      <h3 style="margin:0;">📋 Rule Base Builder</h3>
+      <h3 style="margin:0;">Rule Base Builder</h3>
     </div>
 
     <div id="rulesContainer" style="margin-bottom:1.5rem;">
@@ -19,6 +19,13 @@
           <button type="button" class="btn-remove-rule" onclick="removeRule(0)" style="background:#dc3545; color:#fff; border:none; padding:0.25rem 0.75rem; cursor:pointer; border-radius:3px; font-size:0.9rem;">✖ Remove</button>
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem;">
+          <div>
+            <label style="font-size:0.9rem; font-weight:600;">Rule Type:</label>
+            <select name="rule_0_type" onchange="toggleElseInput(0)" class="dropdown" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+              <option value="if-then" {% if request.form.get('rule_0_type','if-then') == 'if-then' %}selected{% endif %}>IF → THEN</option>
+              <option value="if-then-else" {% if request.form.get('rule_0_type') == 'if-then-else' %}selected{% endif %}>IF → THEN → ELSE</option>
+            </select>
+          </div>
           <div>
             <label style="font-size:0.9rem; font-weight:600;">IF input is:</label>
             <input type="text" name="rule_0_antecedent" placeholder="low" value="low" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
@@ -32,6 +39,14 @@
             <input type="number" name="rule_0_weight" min="0" max="1" step="0.1" value="1.0" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
           </div>
         </div>
+  {% if request.form.get('rule_0_type') == 'if-then-else' %}
+  <div id="rule_0_else" style="margin-top:0.75rem; display:block;">
+  {% else %}
+  <div id="rule_0_else" style="margin-top:0.75rem; display:none;">
+  {% endif %}
+          <label style="font-size:0.9rem; font-weight:600;">ELSE output is:</label>
+          <input type="text" name="rule_0_else_consequent" placeholder="very slow" value="" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+        </div>
       </div>
     </div>
 
@@ -42,7 +57,7 @@
 
     <!-- Input/Output Configuration -->
     <div class="section-header" style="margin-top:2rem; margin-bottom:1rem; padding:0.75rem; background:#f0f0f0; border-left:4px solid #000;">
-      <h3 style="margin:0;">🎯 Input & Output Configuration</h3>
+      <h3 style="margin:0;">Input & Output Configuration</h3>
     </div>
 
     <div class="form-grid">
@@ -61,7 +76,7 @@
 
     <!-- Inference Settings -->
     <div class="section-header" style="margin-top:2rem; margin-bottom:1rem; padding:0.75rem; background:#f0f0f0; border-left:4px solid #000;">
-      <h3 style="margin:0;">⚙️ Inference Settings</h3>
+      <h3 style="margin:0;">Inference Settings</h3>
     </div>
 
     <div class="form-row" style="margin-top:1rem;">
@@ -97,7 +112,7 @@
 
     <!-- Defuzzification Settings -->
     <div class="section-header" style="margin-top:2rem; margin-bottom:1rem; padding:0.75rem; background:#f0f0f0; border-left:4px solid #000;">
-      <h3 style="margin:0;">🎲 Defuzzification Method</h3>
+      <h3 style="margin:0;">Defuzzification Method</h3>
     </div>
 
     <div class="form-row" style="margin-top:1rem;">
@@ -131,20 +146,20 @@
     </div>
 
     <div class="btn-row" style="margin-top:2rem;">
-      <button type="submit" name="compute" class="btn primary">🚀 Run Inference</button>
-      <button type="submit" name="explain" class="btn secondary">💡 Explain with AI</button>
-      <button type="button" onclick="resetForm()" class="btn" style="background:#6c757d; color:#fff;">🔄 Reset</button>
+      <button type="submit" name="compute" class="btn primary">Run Inference</button>
+      <button type="submit" name="explain" class="btn secondary">Explain with AI</button>
+      <button type="button" onclick="resetForm()" class="btn" style="background:#6c757d; color:#fff;">Reset</button>
     </div>
   </form>
 
 
   {% if aggregated_output is not none %}
   <div class="result-box">
-    <h3>📊 Inference Results</h3>
+    <h3>Inference Results</h3>
     
     <!-- Step-by-step breakdown -->
     <div style="background:#f0f8ff; padding:1rem; margin-bottom:1.5rem; border-left:4px solid #007bff; border-radius:4px;">
-      <h4 style="margin-top:0;">🔍 Inference Steps:</h4>
+      <h4 style="margin-top:0;">Inference Steps:</h4>
       <ol style="margin:0; padding-left:1.5rem; line-height:1.8;">
         <li><strong>Fuzzification:</strong> Convert crisp input to fuzzy sets</li>
         <li><strong>Rule Evaluation:</strong> Apply {{ num_rules or 'multiple' }} rule(s) using {{ inference_method|capitalize }} method</li>
@@ -155,7 +170,7 @@
     
     <div class="result-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
       <div style="background:#fff; padding:1rem; border:2px solid #ddd; border-radius:4px;">
-        <h4 style="margin-top:0;">📈 Aggregated Output Set</h4>
+        <h4 style="margin-top:0;">Aggregated Output Set</h4>
         <p><strong>Membership Values:</strong></p>
         <div style="font-family:monospace; background:#f9f9f9; padding:0.75rem; border-radius:3px;">
           {% for label, value in zip(output_labels, aggregated_output) %}
@@ -169,7 +184,7 @@
       </div>
 
       <div style="background:#fff; padding:1rem; border:2px solid #28a745; border-radius:4px;">
-        <h4 style="margin-top:0;">🎯 Crisp Output</h4>
+        <h4 style="margin-top:0;">Crisp Output</h4>
         <p style="font-size:2.5rem; font-weight:700; color:#28a745; margin:0.5rem 0; text-align:center;">
           {{ "%.4f"|format(crisp_output) }}
         </p>
@@ -188,7 +203,7 @@
 
   {% if explanation %}
   <div class="explain-box">
-    <h3>💡 AI Explanation</h3>
+    <h3>AI Explanation</h3>
     <div>{{ explanation|safe }}</div>
   </div>
   {% endif %}
@@ -222,6 +237,13 @@ function addRule() {
     </div>
     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem;">
       <div>
+        <label style="font-size:0.9rem; font-weight:600;">Rule Type:</label>
+        <select name="rule_${ruleCounter}_type" onchange="toggleElseInput(${ruleCounter})" class="dropdown" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+          <option value="if-then" selected>IF → THEN</option>
+          <option value="if-then-else">IF → THEN → ELSE</option>
+        </select>
+      </div>
+      <div>
         <label style="font-size:0.9rem; font-weight:600;">IF input is:</label>
         <input type="text" name="rule_${ruleCounter}_antecedent" placeholder="medium" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
       </div>
@@ -234,11 +256,27 @@ function addRule() {
         <input type="number" name="rule_${ruleCounter}_weight" min="0" max="1" step="0.1" value="1.0" required style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
       </div>
     </div>
+    <div id="rule_${ruleCounter}_else" style="margin-top:0.75rem; display:none;">
+      <label style="font-size:0.9rem; font-weight:600;">ELSE output is:</label>
+      <input type="text" name="rule_${ruleCounter}_else_consequent" placeholder="very slow" value="" style="width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:3px;">
+    </div>
   `;
   
   container.appendChild(newRule);
   ruleCounter++;
   document.getElementById('ruleCount').value = ruleCounter;
+}
+
+// Toggle ELSE input visibility for a rule
+function toggleElseInput(index) {
+  const select = document.querySelector(`select[name="rule_${index}_type"]`);
+  const elseDiv = document.getElementById(`rule_${index}_else`);
+  if (!select || !elseDiv) return;
+  if (select.value === 'if-then-else') {
+    elseDiv.style.display = 'block';
+  } else {
+    elseDiv.style.display = 'none';
+  }
 }
 
 function removeRule(index) {
@@ -302,18 +340,19 @@ document.addEventListener('DOMContentLoaded', function(){
   
   if (!data.hasResult || !data.aggregated_output) return;
   
-  // Bar chart for aggregated output
+  // Line plot for aggregated output
   const trace = {
     x: data.output_labels,
     y: data.aggregated_output,
-    type: 'bar',
-    marker: {
+    type: 'scatter',
+    mode: 'lines+markers',
+    line: {
       color: '#000000',
-      line: {
-        color: '#000000',
-        width: 2
-      },
-      opacity: 0.8
+      width: 2
+    },
+    marker: {
+      size: 6,
+      color: '#000000'
     },
     name: 'Aggregated Output'
   };
@@ -325,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function(){
     mode: 'lines',
     line: {
       color: '#ff0000',
-      width: 4,
+      width: 3,
       dash: 'dash'
     },
     name: 'Crisp Output',

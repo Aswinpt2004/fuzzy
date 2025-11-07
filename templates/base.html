@@ -21,8 +21,9 @@
         <a href="/membership">Membership</a>
         <a href="/relations">Relations</a>
         <a href="/implications">Implications</a>
-  <a href="/fis">FIS</a>
-        <button class="btn ghost" onclick="location.reload()" title="Refresh page" style="margin-left:0.6rem;">Refresh</button>
+        <a href="/defuzzification">Defuzzification</a>
+        <a href="/fis">FIS</a>
+        
       </div>
     </div>
   </nav>
@@ -57,6 +58,24 @@
         console.log('MathJax typeset error: ' + err.message);
       });
     }
+    
+    // Add loading indicator for explain buttons
+    const explainButtons = document.querySelectorAll('button[name="explain"]');
+    explainButtons.forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        // Create or show loading message
+        let loadingDiv = document.getElementById('explanation-loading');
+        if (!loadingDiv) {
+          loadingDiv = document.createElement('div');
+          loadingDiv.id = 'explanation-loading';
+          loadingDiv.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.85); color:#fff; padding:2rem 3rem; border-radius:8px; z-index:9999; font-size:1.1rem; text-align:center;';
+          loadingDiv.innerHTML = '<div style="margin-bottom:0.5rem;">⏳</div><div>Generating explanation...</div>';
+          document.body.appendChild(loadingDiv);
+        } else {
+          loadingDiv.style.display = 'block';
+        }
+      });
+    });
   });
 </script>
 </body>

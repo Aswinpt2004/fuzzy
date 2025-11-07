@@ -134,4 +134,90 @@ Rationale: each removal was validated by searching for imports and template refe
 - `test_modules.py` exists as a verification harness for module sanity checks (basic import and function tests).
 - Manual run attempts: app run attempts had surfaced the `explain_with_llm()` TypeError; after fixing calls and imports the app runs cleanly (no syntax errors). If you see crashes when starting the server, ensure the virtual environment is activated and required packages are installed.
 
-Quick 
+Quick
+
+---
+
+## Planned improvements (next iterations)
+
+Below are prioritized improvements and design suggestions for the FIS that capture the ideas you provided (general rule structure, visualization, new operators, and UI features). Each item includes what to build, where to add it, and why it helps.
+
+### General rule structure
+
+We currently support the normal IF–THEN fuzzy rule and an IF–THEN–ELSE variant. Keep that canonical rule structure:
+
+R: If x is A then y is B
+
+IF–THEN–ELSE:
+
+R: If x is A then y is B else y is C
+
+Where:
+- A — primary condition (antecedent)
+- B — consequence when A is satisfied
+- C — consequence when A is not satisfied
+
+Notes: Membership functions, implication operators, and defuzzified output should be visualized prominently using line plots (membership curves) and an overlay of the aggregated fuzzy result — this yields the most informative display for debugging and teaching.
+
+### Feature matrix / proposed improvements
+
+| Area | Current | Improvements | Benefit |
+| :---- | :------ | :----------- | :----- |
+| Composition Types | Only Max–Min | ➕ Add **Max–Product** and **Algebraic Sum composition** as user-selectable options (backend `fuzzy_inference.py`, UI `fis.html`) | Allows smoother or more aggressive rule blending depending on domain needs |
+| Sugeno Integration | First-order and zero-order models supported | ➕ Add **Adaptive Sugeno (ANFIS-like)** training for parameter tuning (prototype as optional component) | Bridges symbolic FIS and data-driven learning; enables fitting to data |
+| Explanation Panel | Displays numeric inference steps | ➕ Add **color-coded rule firing visualization** (bar chart of activation strengths) and inline linguistic summaries | Immediate visual feedback of rule importance and human-readable explanations |
+
+### Operator & UI enhancements
+
+| Area | Current | Possible Improvements | Why It’s Valuable |
+| :---- | :------ | :------------------- | :---------------- |
+| Implication Operators | Implemented: Mamdani, Larsen, Zadeh, Reichenbach, Bounded Product | ➕ Add **custom hybrid implication** μR = α·min(A,B) + (1−α)·(A·B) with UI slider for α<br>➕ Support parameterized implications in UI | Allows tuning between conservative (min) and smooth (product) implication behaviour |
+| Rule Base Interface | Dynamic rule builder | ➕ Add **rule prioritization/weight slider** (0–1) per rule<br>➕ Group rules by category/subsystem<br>➕ Add rule export/import (JSON) | Weighted rules and grouping help model complex systems and improve reproducibility |
+| Multi-input Rules | Combined via selected T-norm (AND) | ➕ Add OR combinations (S-norm) and parenthetical connectors (IF A AND (B OR C) THEN ...) with a small expression parser | Makes rule language more expressive and human-friendly |
+| Explanations | LLM-based free text | ➕ Add auto-generated templated linguistic summaries (and optional LLM polishing) like: "Because temperature is high (0.7), fan speed is high (0.8)" | Improves interpretability and helps non-experts understand decisions |
+
+### Implementation notes and priorities
+
+- Short-term (1–2 sprints):
+  1. Add Max–Product & Algebraic Sum composition options and expose in `fis.html` (low-risk).
+  2. Add per-rule weight (0–1) to rule model and UI; include the weight in inference multiplication of rule strength (moderate change).
+  3. Add color-coded bar chart for rule firing strengths to the explanation panel (front-end + data wiring).
+
+- Mid-term (next 2–4 sprints):
+  4. Add the hybrid implication operator in `modules/fuzzy_implications.py` plus a UI slider for α (0–1).
+  5. Add OR (S-norm) connectors and parenthesis parsing for more complex rule expressions.
+  6. Implement rule import/export (JSON) and grouping UI.
+
+- Long-term / research (optional):
+  7. Prototype Adaptive Sugeno (ANFIS-like) training for tuning Sugeno consequents from data. This requires a small training harness and dataset format; consider integrating as separate module `modules/anfis.py`.
+
+### UX & visualization guidelines
+
+- Always show membership function curves for antecedents and consequents with a clear legend and consistent color palette.
+- Overlay the aggregated fuzzy output on the same axis as membership plots with transparency and highlight the defuzzified point.
+- Provide a compact rule firing panel: rule text, firing strength (numeric + bar), weight, and final contribution curve (for rule-level inspection).
+
+### Next steps (tracked tasks)
+
+- The project's todo list has been updated with individual tasks for the items above (composition types, hybrid implication, per-rule weights, OR connectors, export/import, ANFIS prototype, explanation visualizations).
+- If you'd like, I can start work on a specific item now — tell me which one to prioritize and I'll:
+  1. Create a focused implementation plan (contract, inputs/outputs, tests)
+  2. Implement code changes and UI updates
+  3. Add unit tests and run the app locally to verify
+
+---
+
+Appendix: Example hybrid implication (implementation sketch)
+
+```python
+# modules/fuzzy_implications.py
+def hybrid_implication(a, b, alpha=0.5):
+    # a, b: membership values in [0,1]
+    return alpha * min(a, b) + (1 - alpha) * (a * b)
+```
+
+This operator can be vectorized across arrays and exposed in the UI with a slider for `alpha` (0..1).
+
+---
+
+End of planned improvements.

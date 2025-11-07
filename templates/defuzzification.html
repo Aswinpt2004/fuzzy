@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-card">
+  <h2>Defuzzification Methods</h2>
+  <p>Convert fuzzy sets to crisp values using various defuzzification techniques</p>
+
+  <form method="POST" class="form-area">
+    <div class="form-grid">
+      <div class="form-col">
+        <label>Fuzzy Set (Aggregated Output):</label>
+        <textarea name="fuzzy_set" rows="4" required placeholder="(label1,0.3),(label2,0.7),(label3,0.5)">{{ request.form.fuzzy_set or "(low,0.2),(medium,0.6),(high,0.4)" }}</textarea>
+        <small class="muted">Format: (label,membership) pairs</small>
+      </div>
+
+      <div class="form-col">
+        <label>Numeric Universe (optional):</label>
+        <textarea name="universe" rows="4" placeholder="0,1,2,3,4,5,6,7,8,9,10">{{ request.form.universe or "" }}</textarea>
+        <small class="muted">Comma-separated values. If empty, indices will be used.</small>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:1rem;">
+      <div class="form-col">
+        <label>Defuzzification Method:</label>
+        <select name="defuzz_method" class="dropdown" id="defuzzSelect">
+          <optgroup label="Maxima Methods">
+            <option value="height" {% if request.form.defuzz_method == 'height' %}selected{% endif %}>Height Method</option>
+            <option value="mom" {% if request.form.defuzz_method == 'mom' %}selected{% endif %}>Mean of Maxima (MoM)</option>
+            <option value="fom" {% if request.form.defuzz_method == 'fom' %}selected{% endif %}>First of Maxima (FoM)</option>
+            <option value="lom" {% if request.form.defuzz_method == 'lom' %}selected{% endif %}>Last of Maxima (LoM)</option>
+          </optgroup>
+          <optgroup label="Centroid Methods">
+            <option value="centroid" {% if request.form.defuzz_method == 'centroid' or not request.form.defuzz_method %}selected{% endif %}>Center of Gravity (CoG)</option>
+            <option value="cos" {% if request.form.defuzz_method == 'cos' %}selected{% endif %}>Center of Sums (CoS)</option>
+            <option value="coa" {% if request.form.defuzz_method == 'coa' %}selected{% endif %}>Center of Area (CoA)</option>
+          </optgroup>
+          <optgroup label="Other Methods">
+            <option value="bisector" {% if request.form.defuzz_method == 'bisector' %}selected{% endif %}>Bisector Method</option>
+            <option value="wtaver" {% if request.form.defuzz_method == 'wtaver' %}selected{% endif %}>Weighted Average</option>
+            <option value="lambda_cut" {% if request.form.defuzz_method == 'lambda_cut' %}selected{% endif %}>Lambda-Cut Method</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="form-col" id="lambdaContainer" style="display:none;">
+        <label>Lambda Value:</label>
+        <input type="number" name="lambda_value" min="0" max="1" step="0.05" value="0.5" class="dropdown" placeholder="0.5">
+        <small class="muted">Threshold for lambda-cut (0 to 1)</small>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:1.5rem;">
+      <button type="submit" name="compute" class="btn primary">Defuzzify</button>
+      <button type="submit" name="explain" class="btn secondary">Explain</button>
+    </div>
+  </form>
+
+  {% if crisp_output is not none %}
+  <div class="result-box">
+    <h3>Defuzzification Result</h3>
+    
+    <div class="result-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+      <div style="background:#fff; padding:1rem; border:2px solid #ddd; border-radius:4px;">
+        <h4 style="margin-top:0;">Input Fuzzy Set</h4>
+        <div style="font-family:monospace; background:#f9f9f9; padding:0.75rem; border-radius:3px;">
+          {% for label, value in zip(labels, memberships) %}
+            <div style="margin-bottom:0.25rem;">
+              <span style="font-weight:600; color:#0066cc;">{{ label }}:</span> 
+              <span style="color:#000;">{{ "%.4f"|format(value) }}</span>
+              <span style="color:#999;">│{{ '█' * (value * 20)|int }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div style="background:#fff; padding:1rem; border:2px solid #28a745; border-radius:4px;">
+        <h4 style="margin-top:0;">Crisp Output</h4>
+        <p style="font-size:2.5rem; font-weight:700; color:#28a745; margin:0.5rem 0; text-align:center;">
+          {{ "%.4f"|format(crisp_output) }}
+        </p>
+        <div style="text-align:center; margin-top:1rem;">
+          <small class="muted" style="display:block; margin-bottom:0.25rem;"><strong>Method:</strong> {{ method_name }}</small>
+          {% if lambda_value is not none %}
+          <small class="muted" style="display:block;"><strong>Lambda:</strong> {{ lambda_value }}</small>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div id="chart"></div>
+  </div>
+  {% endif %}
+
+  {% if explanation %}
+  <div class="explain-box">
+    <h3>AI Explanation</h3>
+    <div id="explanationContent">{{ explanation|safe }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script type="application/json" id="defuzz-data">
+{
+  "hasResult": {{ (crisp_output is not none)|tojson }},
+  "labels": {{ labels|tojson if labels else '[]' }},
+  "memberships": {{ memberships|tojson if memberships is not none else 'null' }},
+  "universe": {{ universe|tojson if universe is not none else 'null' }},
+  "crisp_output": {{ crisp_output|tojson if crisp_output is not none else 'null' }}
+}
+</script>
+
+<script>
+// Show/hide lambda value input
+document.addEventListener('DOMContentLoaded', function() {
+  const defuzzSelect = document.getElementById('defuzzSelect');
+  const lambdaContainer = document.getElementById('lambdaContainer');
+  
+  if (defuzzSelect && lambdaContainer) {
+    defuzzSelect.addEventListener('change', function() {
+      lambdaContainer.style.display = (this.value === 'lambda_cut') ? 'block' : 'none';
+    });
+    
+    // Check initial value
+    if (defuzzSelect.value === 'lambda_cut') {
+      lambdaContainer.style.display = 'block';
+    }
+  }
+});
+
+// Plotting
+document.addEventListener('DOMContentLoaded', function(){
+  const el = document.getElementById('defuzz-data');
+  if (!el) return;
+  
+  let data;
+  try { 
+    data = JSON.parse(el.textContent || '{}'); 
+  } catch (e) { 
+    console.error('Failed to parse defuzzification data', e);
+    return; 
+  }
+  
+  if (!data.hasResult || !data.memberships) return;
+  
+  // Use universe if provided, otherwise use indices or labels
+  const xValues = data.universe || data.labels.map((_, i) => i);
+  
+  // Line plot for fuzzy set
+  const trace = {
+    x: xValues,
+    y: data.memberships,
+    type: 'scatter',
+    mode: 'lines+markers',
+    name: 'Fuzzy Set',
+    line: {
+      color: '#000000',
+      width: 2
+    },
+    marker: {
+      size: 6,
+      color: '#000000'
+    }
+  };
+
+  // Vertical line for crisp output
+  const crispLine = {
+    x: [data.crisp_output, data.crisp_output],
+    y: [0, Math.max(...data.memberships) * 1.1],
+    mode: 'lines',
+    line: {
+      color: '#ff0000',
+      width: 3,
+      dash: 'dash'
+    },
+    name: 'Crisp Output',
+    showlegend: true
+  };
+
+  const layout = {
+    title: {
+      text: 'Defuzzification Visualization',
+      font: { size: 18, color: '#000' }
+    },
+    paper_bgcolor: '#ffffff',
+    plot_bgcolor: '#ffffff',
+    font: { color: '#000000', size: 13 },
+    yaxis: { 
+      title: { text: 'Membership (μ)', font: { size: 14 } },
+      range: [0, 1.05],
+      gridcolor: '#e0e0e0'
+    },
+    xaxis: { 
+      title: { text: 'Universe of Discourse', font: { size: 14 } },
+      gridcolor: '#e0e0e0'
+    },
+    margin: { l: 60, r: 40, t: 60, b: 60 },
+    height: 420,
+    legend: {
+      bgcolor: 'rgba(255,255,255,0.8)',
+      bordercolor: '#000',
+      borderwidth: 1
+    }
+  };
+
+  Plotly.newPlot('chart', [trace, crispLine], layout, {responsive: true});
+});
+</script>
+
+{% if explanation %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const explainBox = document.querySelector('.explain-box');
+    if (explainBox && window.MathJax) {
+      MathJax.typeset([explainBox]);
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}
